@@ -9,7 +9,7 @@ Expires: 4 September 2024                                          Cisco
                                                             3 March 2024
 
 
-           MoQ and MLS - Secure Group Key Agreement Over MoQ
+              Secure Group Key Agreement with MLS over MoQ
                    draft-jennings-moq-e2ee-mls-latest
 
 Abstract
@@ -21,10 +21,9 @@ About This Document
    This note is to be removed before publishing as an RFC.
 
    The latest revision of this draft can be found at
-   https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-
-   moq-secure-objects.html.  Status information for this document may be
-   found at https://datatracker.ietf.org/doc/draft-jennings-moq-e2ee-
-   mls/.
+   https://suhashere.github.io/moq-e2ee-mls.  Status information for
+   this document may be found at https://datatracker.ietf.org/doc/draft-
+   jennings-moq-e2ee-mls/.
 
    Discussion of this document takes place on the Media over QUIC
    Working Group mailing list (mailto:moq@ietf.org), which is archived
@@ -32,7 +31,7 @@ About This Document
    https://www.ietf.org/mailman/listinfo/moq/.
 
    Source for this draft and an issue tracker can be found at
-   https://github.com/suhasHere/moq-secure-objects.
+   https://github.com/suhasHere/moq-e2ee-mls.
 
 Status of This Memo
 
@@ -233,10 +232,13 @@ Table of Contents
 
    All the participants subscribe to "Commit" track for a given MLS
    group.  This allows them to process MLS commit messages being
-   published under the following group update operations - Add a new
-   member - Remove an existing member
+   published under the following group update operations
 
-   TODO: SHOULD WE even support other updates ?
+   *  Add a new member
+
+   *  Remove an existing member
+
+   TODO: SHOULD we even support other updates ?
 
 5.  MLS MoQ Tracks
 

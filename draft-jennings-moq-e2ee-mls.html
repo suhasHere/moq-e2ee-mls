@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta content="Common,Latin" name="scripts">
 <meta content="initial-scale=1.0" name="viewport">
-<title>MoQ and MLS - Secure Group Key Agreement Over MoQ</title>
+<title>Secure Group Key Agreement with MLS over MoQ</title>
 <meta content="Cullen Jennings" name="author">
 <meta content="Richard L. Barnes" name="author">
 <meta content="Suhas Nandakumar" name="author">
@@ -1067,7 +1067,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
 </dd>
 </dl>
 </div>
-<h1 id="title">MoQ and MLS - Secure Group Key Agreement Over MoQ</h1>
+<h1 id="title">Secure Group Key Agreement with MLS over MoQ</h1>
 <section id="section-abstract">
       <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
 <p id="section-abstract-1">TODO Abstract<a href="#section-abstract-1" class="pilcrow">¶</a></p>
@@ -1078,7 +1078,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
       </h2>
 <p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
 <p id="section-note.1-2">
-        The latest revision of this draft can be found at <span><a href="https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-moq-secure-objects.html">https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-moq-secure-objects.html</a></span>.
+        The latest revision of this draft can be found at <span><a href="https://suhashere.github.io/moq-e2ee-mls">https://suhashere.github.io/moq-e2ee-mls</a></span>.
         Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-jennings-moq-e2ee-mls/">https://datatracker.ietf.org/doc/draft-jennings-moq-e2ee-mls/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
 <p id="section-note.1-3">
         Discussion of this document takes place on the
@@ -1086,7 +1086,7 @@ svg :is([fill="white"], [fill^="#fff"]) {
         which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/moq/">https://mailarchive.ietf.org/arch/browse/moq/</a></span>.
         Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/moq/">https://www.ietf.org/mailman/listinfo/moq/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
 <p id="section-note.1-4">Source for this draft and an issue tracker can be found at
-        <span><a href="https://github.com/suhasHere/moq-secure-objects">https://github.com/suhasHere/moq-secure-objects</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+        <span><a href="https://github.com/suhasHere/moq-e2ee-mls">https://github.com/suhasHere/moq-e2ee-mls</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
 </section>
 <div id="status-of-memo">
 <section id="section-boilerplate.1">
@@ -1233,27 +1233,45 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
       <h2 id="name-mls-overview">
 <a href="#section-3" class="section-number selfRef">3. </a><a href="#name-mls-overview" class="section-name selfRef">MLS Overview</a>
       </h2>
-<p id="section-3-1">MLS protocol provides continuous group authenticated key exchange.  MLS provides several important security properties<a href="#section-3-1" class="pilcrow">¶</a></p>
+<p id="section-3-1">MLS protocol provides continuous group authenticated key exchange.  MLS
+provides several important security properties<a href="#section-3-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-3-2.1">
-          <p id="section-3-2.1.1">Group Key Exchange: All members of the group at a given time know a secret key that is inaccessible to parties outside the group.<a href="#section-3-2.1.1" class="pilcrow">¶</a></p>
+          <p id="section-3-2.1.1">Group Key Exchange: All members of the group at a given time know a
+secret key that is inaccessible to parties outside the group.<a href="#section-3-2.1.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-3-2.2">
-          <p id="section-3-2.2.1">Authentication of group members: Each member of the group can authenticate the other members of the group.<a href="#section-3-2.2.1" class="pilcrow">¶</a></p>
+          <p id="section-3-2.2.1">Authentication of group members: Each member of the group can
+authenticate the other members of the group.<a href="#section-3-2.2.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-3-2.3">
-          <p id="section-3-2.3.1">Group Agreement: The members of the group all agree on the identities of the participants in the group.<a href="#section-3-2.3.1" class="pilcrow">¶</a></p>
+          <p id="section-3-2.3.1">Group Agreement: The members of the group all agree on the identities
+of the participants in the group.<a href="#section-3-2.3.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-3-2.4">
-          <p id="section-3-2.4.1">Forward Secrecy: There are protocol events such that if a member's state is compromised after the event, group secrets created before the event are safe.<a href="#section-3-2.4.1" class="pilcrow">¶</a></p>
+          <p id="section-3-2.4.1">Forward Secrecy: There are protocol events such that if a member's
+state is compromised after the event, group secrets created before the
+event are safe.<a href="#section-3-2.4.1" class="pilcrow">¶</a></p>
 </li>
         <li class="normal" id="section-3-2.5">
-          <p id="section-3-2.5.1">Post-compromise Security: There are protocol events such that if a member's state is compromised before the event, the group secrets created after the event are safe.<a href="#section-3-2.5.1" class="pilcrow">¶</a></p>
+          <p id="section-3-2.5.1">Post-compromise Security: There are protocol events such that if a
+member's state is compromised before the event, the group secrets
+created after the event are safe.<a href="#section-3-2.5.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
-<p id="section-3-3">At a very high level, MLS protocol operates by participants sending proposals to add/remove/update the group state and an active member of the group commit the proposals  to move the group’s cryptographic state from one epoch to the next.<a href="#section-3-3" class="pilcrow">¶</a></p>
-<p id="section-3-4">In order to setup end to end encryption of media delivered over MOQT delivery network, producders and consumers participate in the MLS exchange to setup group secret through which are used to derived the keys needed for encrypting the media/data published by the members of the MLS group.<a href="#section-3-4" class="pilcrow">¶</a></p>
-<p id="section-3-5">Below figure captures a typical setup for clients to participate in the MLS protocol, with Delivery Service (DS) acting as the rendezvous point. In the example setting, participants A, B and C involve in protocol exchange to setup end to end encrypted  session keyed via MLS.<a href="#section-3-5" class="pilcrow">¶</a></p>
+<p id="section-3-3">At a very high level, MLS protocol operates by participants sending
+proposals to add/remove/update the group state and an active member of
+the group commit the proposals to move the group’s cryptographic state
+from one epoch to the next.<a href="#section-3-3" class="pilcrow">¶</a></p>
+<p id="section-3-4">In order to setup end to end encryption of media delivered over MOQT
+delivery network, producders and consumers participate in the MLS
+exchange to setup group secret through which are used to derived the
+keys needed for encrypting the media/data published by the members of
+the MLS group.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<p id="section-3-5">Below figure captures a typical setup for clients to participate in the
+MLS protocol, with Delivery Service (DS) acting as the rendezvous
+point. In the example setting, participants A, B and C involve in
+protocol exchange to setup end to end encrypted session keyed via MLS.<a href="#section-3-5" class="pilcrow">¶</a></p>
 <p id="section-3-6">TODO: Add a simple call-flow here<a href="#section-3-6" class="pilcrow">¶</a></p>
 <div id="critical-invariants">
 <section id="section-3.1">
@@ -1277,20 +1295,27 @@ appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶<
       <h2 id="name-mls-and-moq">
 <a href="#section-4" class="section-number selfRef">4. </a><a href="#name-mls-and-moq" class="section-name selfRef">MLS and MOQ</a>
       </h2>
-<p id="section-4-1">Unit of MLS functionality is a group, where at any given time, a group represents a secret known only to its members. Membership to the group can change over time. Each time membership changes (batch of joins or leaves), the shared secret is changed to one known only by the current members. Each period of time with stable membership/secret is an epoch<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-1">Unit of MLS functionality is a group, where at any given time, a group
+represents a secret known only to its members. Membership to the group
+can change over time. Each time membership changes (batch of joins or
+leaves), the shared secret is changed to one known only by the current
+members. Each period of time with stable membership/secret is an epoch<a href="#section-4-1" class="pilcrow">¶</a></p>
 <div id="bootstrapping-mls-session">
 <section id="section-4.1">
         <h3 id="name-bootstrapping-mls-session">
 <a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-bootstrapping-mls-session" class="section-name selfRef">Bootstrapping MLS Session</a>
         </h3>
-<p id="section-4.1-1">As part of bootstrapping a MLS Session, each MOQT endpoint needs to perform
-following 2 actions:<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<p id="section-4.1-1">As part of bootstrapping a MLS Session, each MOQT endpoint needs to
+perform following 2 actions:<a href="#section-4.1-1" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-4.1-2">
 <li id="section-4.1-2.1">
-            <p id="section-4.1-2.1.1">Subscribe to MOQT track for processing MLS KeyPackages (see <span class="contact-name">mls-tracks</span>) for processing addition of new members to the group.<a href="#section-4.1-2.1.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-2.1.1">Subscribe to MOQT track for processing MLS KeyPackages (see
+<span class="contact-name">mls-tracks</span>) for processing addition of new members to the
+group.<a href="#section-4.1-2.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.1-2.2">
-            <p id="section-4.1-2.2.1">Publishing their  MLS keypackages identifying the credentials to the "keypackage" track<a href="#section-4.1-2.2.1" class="pilcrow">¶</a></p>
+            <p id="section-4.1-2.2.1">Publishing their MLS keypackages identifying the credentials to the
+"keypackage" track<a href="#section-4.1-2.2.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
 </section>
@@ -1309,29 +1334,45 @@ following 2 actions:<a href="#section-4.1-1" class="pilcrow">¶</a></p>
             <p id="section-4.2-2.2.1">A way to choose an existing member to add a new member.<a href="#section-4.2-2.2.1" class="pilcrow">¶</a></p>
 </li>
         </ol>
-<p id="section-4.2-3">In order to realize the above functionalities and ensure the criticial invariants, a centralized lock service is required to help resolve contention.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
-<p id="section-4.2-4">Participants intending to join try to acquire lock to create/join the group.
-If the lock can be successfully acquired and the response indicates "Create", the participant is the first participant and he creates the group unilaterally and
-generate the initial secret. Then the pariticipant release the "crate_or_join" lock.<a href="#section-4.2-4" class="pilcrow">¶</a></p>
-<p id="section-4.2-5">Alternately, if the repsonse indicate "Join", then the participant awaits for an e
-existing member to process the request to join the group.<a href="#section-4.2-5" class="pilcrow">¶</a></p>
-<p id="section-4.2-6">When an existing member receives KeyPackage, the process of adding the new
-member is as follows:<a href="#section-4.2-6" class="pilcrow">¶</a></p>
+<p id="section-4.2-3">In order to realize the above functionalities and ensure the criticial
+invariants, a centralized lock service is required to help resolve
+contention.<a href="#section-4.2-3" class="pilcrow">¶</a></p>
+<p id="section-4.2-4">Participants intending to join try to acquire lock to create/join the
+group.  If the lock can be successfully acquired and the response
+indicates "Create", the participant is the first participant and he
+creates the group unilaterally and generate the initial secret. Then the
+pariticipant release the "crate_or_join" lock.<a href="#section-4.2-4" class="pilcrow">¶</a></p>
+<p id="section-4.2-5">Alternately, if the repsonse indicate "Join", then the participant
+awaits for an e existing member to process the request to join the
+group.<a href="#section-4.2-5" class="pilcrow">¶</a></p>
+<p id="section-4.2-6">When an existing member receives KeyPackage, the process of adding the
+new member is as follows:<a href="#section-4.2-6" class="pilcrow">¶</a></p>
 <ol start="1" type="1" class="normal type-1" id="section-4.2-7">
 <li id="section-4.2-7.1">
             <p id="section-4.2-7.1.1">Acquire lock to commit to the group for a given epoch<a href="#section-4.2-7.1.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.2-7.2">
-            <p id="section-4.2-7.2.1">If lock acquired sucessfully, process the keyPackage for duplicates/error, create MLS Welcome and Commit messages, publish them to the "Welcome" and "Commit" tracks for the MLS Group and the epoch. See <a href="#mls-tracks" class="auto internal xref">Section 5</a> for further details on the tracks.<a href="#section-4.2-7.2.1" class="pilcrow">¶</a></p>
+            <p id="section-4.2-7.2.1">If lock acquired sucessfully, process the keyPackage for
+duplicates/error, create MLS Welcome and Commit messages, publish
+them to the "Welcome" and "Commit" tracks for the MLS Group and the
+epoch. See <a href="#mls-tracks" class="auto internal xref">Section 5</a> for further details on the tracks.<a href="#section-4.2-7.2.1" class="pilcrow">¶</a></p>
 </li>
           <li id="section-4.2-7.3">
-            <p id="section-4.2-7.3.1">If lock cannot be acquired due to conflict for a given epoch, retry after a confgured timeout. One of the 2 things might happen:<a href="#section-4.2-7.3.1" class="pilcrow">¶</a></p>
+            <p id="section-4.2-7.3.1">If lock cannot be acquired due to conflict for a given epoch, retry
+after a confgured timeout. One of the 2 things might happen:<a href="#section-4.2-7.3.1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-4.2-7.3.2.1">
-                <p id="section-4.2-7.3.2.1.1">Another member was able to successfuly perform group update for the current epoch, in which case it is recommended for the member to process MLS messages before retrying the operation again for the same epoch to ensure the group updates are already what the member wants.<a href="#section-4.2-7.3.2.1.1" class="pilcrow">¶</a></p>
+                <p id="section-4.2-7.3.2.1.1">Another member was able to successfuly perform group update for the
+current epoch, in which case it is recommended for the member to
+process MLS messages before retrying the operation again for the
+same epoch to ensure the group updates are already what the member
+wants.<a href="#section-4.2-7.3.2.1.1" class="pilcrow">¶</a></p>
 </li>
               <li class="normal" id="section-4.2-7.3.2.2">
-                <p id="section-4.2-7.3.2.2.1">Another member updated the group state with commits that are different from the member attempting to obtain the lock. In such a scenario, the member needs to wait to process the commits in transit and retry step 1 for the next right epoch in the sequence<a href="#section-4.2-7.3.2.2.1" class="pilcrow">¶</a></p>
+                <p id="section-4.2-7.3.2.2.1">Another member updated the group state with commits that are
+different from the member attempting to obtain the lock. In such a
+scenario, the member needs to wait to process the commits in
+transit and retry step 1 for the next right epoch in the sequence<a href="#section-4.2-7.3.2.2.1" class="pilcrow">¶</a></p>
 </li>
             </ul>
 </li>
@@ -1343,7 +1384,12 @@ member is as follows:<a href="#section-4.2-6" class="pilcrow">¶</a></p>
         <h3 id="name-processing-the-welcome-mess">
 <a href="#section-4.3" class="section-number selfRef">4.3. </a><a href="#name-processing-the-welcome-mess" class="section-name selfRef">Processing the Welcome Message</a>
         </h3>
-<p id="section-4.3-1">Participants await MLS Welcome message after publishing their Keypackage to join the group. They do so by subscribing to the "Welcome" track. On receipt of the Welcome message, local MLS state is updated with the recevied Welcome message to obtain the group secret for the current epoch. If the participant is already a member of the group, the Welcome message is dropped/ignored.<a href="#section-4.3-1" class="pilcrow">¶</a></p>
+<p id="section-4.3-1">Participants await MLS Welcome message after publishing their Keypackage
+to join the group. They do so by subscribing to the "Welcome" track. On
+receipt of the Welcome message, local MLS state is updated with the
+recevied Welcome message to obtain the group secret for the current
+epoch. If the participant is already a member of the group, the Welcome
+message is dropped/ignored.<a href="#section-4.3-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="removing-from-the-group">
@@ -1359,10 +1405,18 @@ member is as follows:<a href="#section-4.2-6" class="pilcrow">¶</a></p>
         <h3 id="name-processing-the-mls-commit-m">
 <a href="#section-4.5" class="section-number selfRef">4.5. </a><a href="#name-processing-the-mls-commit-m" class="section-name selfRef">Processing the MLS Commit Messages</a>
         </h3>
-<p id="section-4.5-1">All the participants subscribe to "Commit" track for a given MLS group. This allows them to process MLS commit messages being published under the following group update operations
- - Add a new member
- - Remove an existing member<a href="#section-4.5-1" class="pilcrow">¶</a></p>
-<p id="section-4.5-2">TODO: <span class="bcp14">SHOULD</span> WE even support other updates ?<a href="#section-4.5-2" class="pilcrow">¶</a></p>
+<p id="section-4.5-1">All the participants subscribe to "Commit" track for a given MLS
+group. This allows them to process MLS commit messages being published
+under the following group update operations<a href="#section-4.5-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4.5-2.1">
+            <p id="section-4.5-2.1.1">Add a new member<a href="#section-4.5-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-4.5-2.2">
+            <p id="section-4.5-2.2.1">Remove an existing member<a href="#section-4.5-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-4.5-3">TODO: <span class="bcp14">SHOULD</span> we even support other updates ?<a href="#section-4.5-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1375,7 +1429,9 @@ member is as follows:<a href="#section-4.2-6" class="pilcrow">¶</a></p>
 <p id="section-5-1">For all the various tracks:<a href="#section-5-1" class="pilcrow">¶</a></p>
 <ul class="normal">
 <li class="normal" id="section-5-2.1">
-          <p id="section-5-2.1.1">The TrackNamespace is scoped to the combination of MLS Group and MLS operation. The MLS group name chosen should be unique within a MOQ relay network.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
+          <p id="section-5-2.1.1">The TrackNamespace is scoped to the combination of MLS Group and MLS
+operation. The MLS group name chosen should be unique within a MOQ
+relay network.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 <div class="alignLeft art-text artwork" id="section-5-3">
@@ -1385,7 +1441,8 @@ TrackNamespace := &lt;mls-group-name&gt; | &lt;mls-operation&gt;
 </div>
 <ul class="normal">
 <li class="normal" id="section-5-4.1">
-          <p id="section-5-4.1.1">TrackName identifies the sender performing the operation. The value chosen for sender <span class="bcp14">MUST</span> be unique within a MOQ application.<a href="#section-5-4.1.1" class="pilcrow">¶</a></p>
+          <p id="section-5-4.1.1">TrackName identifies the sender performing the operation. The value
+chosen for sender <span class="bcp14">MUST</span> be unique within a MOQ application.<a href="#section-5-4.1.1" class="pilcrow">¶</a></p>
 </li>
       </ul>
 <p id="section-5-5">TODO: add notes on ways to choose the sender<a href="#section-5-5" class="pilcrow">¶</a></p>
@@ -1406,7 +1463,9 @@ TrackNamespace := mls-group | "keypackage" and
  FullTrackName := mls-group | "keypackage" | sender-id
 </pre><a href="#section-5.1-4" class="pilcrow">¶</a>
 </div>
-<p id="section-5.1-5">There is one MOQT group and objects within that group identify different updates of the KeyPackage with objectId of 0 being sent at the time of joining a MLS group<a href="#section-5.1-5" class="pilcrow">¶</a></p>
+<p id="section-5.1-5">There is one MOQT group and objects within that group identify different
+updates of the KeyPackage with objectId of 0 being sent at the time of
+joining a MLS group<a href="#section-5.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="welcome">
@@ -1424,7 +1483,8 @@ TrackNamespace := mls-group | "welcome"
 ~~~
 FullTrackName := mls-group | "welcome" | sender-id
 ~~~<a href="#section-5.2-3" class="pilcrow">¶</a></p>
-<p id="section-5.2-4">There is one MOQT group per MLS epoch and objectId 0 carries the MLS Welcome message.<a href="#section-5.2-4" class="pilcrow">¶</a></p>
+<p id="section-5.2-4">There is one MOQT group per MLS epoch and objectId 0 carries the MLS
+Welcome message.<a href="#section-5.2-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="commit">
@@ -1442,7 +1502,8 @@ TrackNamespace := mls-group | "commit"
 ~~~~
 FullTrackName := mls-group | "commit" | sender-id
 ~~~~<a href="#section-5.3-3" class="pilcrow">¶</a></p>
-<p id="section-5.3-4">There is one MOQT group per MLS epoch and objectId 0 carries the MLS Commit message.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
+<p id="section-5.3-4">There is one MOQT group per MLS epoch and objectId 0 carries the MLS
+Commit message.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
