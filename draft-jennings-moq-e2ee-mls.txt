@@ -255,8 +255,9 @@ Table of Contents
 
 5.1.  KeyPackage
 
-   Subscribe happens on the track namespce ~~~~ TrackNamespace := mls-
-   group | "keypackage" and ~~~~
+   Subscribe happens on the track namespce
+
+   TrackNamespace := mls-group | "keypackage" and
 
    and publishes happens on the
 
@@ -280,8 +281,9 @@ Table of Contents
 
 5.3.  Commit
 
-   Subscribe happens on the namespace ~~~~ TrackNamespace := mls-group |
-   "commit" ~~~~
+   Subscribe happens on the namespace
+
+   TrackNamespace := mls-group | "commit"
 
    and Publishes happens on ~~~~ FullTrackName := mls-group | "commit" |
    sender-id ~~~~

@@ -1394,17 +1394,19 @@ TrackNamespace := &lt;mls-group-name&gt; | &lt;mls-operation&gt;
         <h3 id="name-keypackage">
 <a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-keypackage" class="section-name selfRef">KeyPackage</a>
         </h3>
-<p id="section-5.1-1">Subscribe happens on the track namespce
-~~~~
+<p id="section-5.1-1">Subscribe happens on the track namespce<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.1-2">
+<pre>
 TrackNamespace := mls-group | "keypackage" and
-~~~~<a href="#section-5.1-1" class="pilcrow">¶</a></p>
-<p id="section-5.1-2">and publishes happens on the<a href="#section-5.1-2" class="pilcrow">¶</a></p>
-<div class="alignLeft art-text artwork" id="section-5.1-3">
+</pre><a href="#section-5.1-2" class="pilcrow">¶</a>
+</div>
+<p id="section-5.1-3">and publishes happens on the<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.1-4">
 <pre>
  FullTrackName := mls-group | "keypackage" | sender-id
-</pre><a href="#section-5.1-3" class="pilcrow">¶</a>
+</pre><a href="#section-5.1-4" class="pilcrow">¶</a>
 </div>
-<p id="section-5.1-4">There is one MOQT group and objects within that group identify different updates of the KeyPackage with objectId of 0 being sent at the time of joining a MLS group<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+<p id="section-5.1-5">There is one MOQT group and objects within that group identify different updates of the KeyPackage with objectId of 0 being sent at the time of joining a MLS group<a href="#section-5.1-5" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="welcome">
@@ -1430,15 +1432,17 @@ FullTrackName := mls-group | "welcome" | sender-id
         <h3 id="name-commit">
 <a href="#section-5.3" class="section-number selfRef">5.3. </a><a href="#name-commit" class="section-name selfRef">Commit</a>
         </h3>
-<p id="section-5.3-1">Subscribe happens on the namespace
-~~~~
+<p id="section-5.3-1">Subscribe happens on the namespace<a href="#section-5.3-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-5.3-2">
+<pre>
 TrackNamespace := mls-group | "commit"
-~~~~<a href="#section-5.3-1" class="pilcrow">¶</a></p>
-<p id="section-5.3-2">and Publishes happens on
+</pre><a href="#section-5.3-2" class="pilcrow">¶</a>
+</div>
+<p id="section-5.3-3">and Publishes happens on
 ~~~~
 FullTrackName := mls-group | "commit" | sender-id
-~~~~<a href="#section-5.3-2" class="pilcrow">¶</a></p>
-<p id="section-5.3-3">There is one MOQT group per MLS epoch and objectId 0 carries the MLS Commit message.<a href="#section-5.3-3" class="pilcrow">¶</a></p>
+~~~~<a href="#section-5.3-3" class="pilcrow">¶</a></p>
+<p id="section-5.3-4">There is one MOQT group per MLS epoch and objectId 0 carries the MLS Commit message.<a href="#section-5.3-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
