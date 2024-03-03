@@ -169,6 +169,7 @@ TODO: add notes on ways to choose the sender
 ## KeyPackage
 
 Subscribe happens on the track namespce
+
 ~~~~
 TrackNamespace := mls-group | "keypackage" and
 ~~~~
@@ -200,6 +201,7 @@ There is one MOQT group per MLS epoch and objectId 0 carries the MLS Welcome mes
 ## Commit
 
 Subscribe happens on the namespace
+
 ~~~~
 TrackNamespace := mls-group | "commit"
 ~~~~
