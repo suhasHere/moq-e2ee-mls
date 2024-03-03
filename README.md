@@ -1,16 +1,30 @@
-# Internet-Draft Template Repository
+# Secure Objects
 
-Use this repository as a template if you want to start working on
-[IETF](https://www.ietf.org/) documents.
+This is the working area for the individual Internet-Draft, "MoQ Secure Objects", a light weight symmetric encryption scheme for securing MoQ objects.
 
-[Read the
-instructions](https://github.com/martinthomson/i-d-template/blob/main/doc/TEMPLATE.md)
-for more information.
 
-Once you have created your own repository, start work by:
+* [Editor's Copy](https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-moq-secure-objects.html)
+* [Datatracker Page](https://datatracker.ietf.org/doc/draft-fluffy-moq-secure-objects)
+* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-jennings-moq-secure-objects)
+* [Compare Editor's Copy to Individual Draft](https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-moq-secure-objects.diff)
 
-1. Set "Workflow permissions" to "Read and write permissions"
-   [in the repository settings](../../settings/actions#actions_default_workflow_permissions_write).
+## Contributing
 
-2. Rename the `draft-todo-yourname-protocol.md` file
-   [here](../../edit/main/draft-todo-yourname-protocol.md).
+See the
+[guidelines for contributions](https://github.com/suhasHere/moq-secure-objects/blob/main/CONTRIBUTING.md).
+
+Contributions can be made by creating pull requests.
+The GitHub interface supports creating pull requests using the Edit (✏) button.
+
+
+## Command Line Usage
+
+Formatted text and HTML versions of the draft can be built using `make`.
+
+```sh
+$ make
+```
+
+Command line usage requires that you have the necessary software installed.  See
+[the instructions](https://github.com/martinthomson/i-d-template/blob/main/doc/SETUP.md).
+
