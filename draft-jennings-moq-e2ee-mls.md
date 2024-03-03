@@ -71,8 +71,8 @@ provides several important security properties
 * Group Key Exchange: All members of the group at a given time know a
   secret key that is inaccessible to parties outside the group.
 
-* Authentication of group members: Each member of the group can authenticate the other
-  members of the group.
+* Authentication of group members: Each member of the group can
+  authenticate the other members of the group.
 
 * Group Agreement: The members of the group all agree on the identities
   of the participants in the group.
@@ -154,8 +154,8 @@ Alternately, if the repsonse indicate "Join", then the participant
 awaits for an e existing member to process the request to join the
 group.
 
-When an existing member receives KeyPackage, the process of adding the new
-member is as follows:
+When an existing member receives KeyPackage, the process of adding the
+new member is as follows:
 
 1. Acquire lock to commit to the group for a given epoch
 
@@ -278,6 +278,7 @@ Commit message.
 # Centralized Lock Service {#lock}
 
 TODO: Define API for the lock service
+
 
 # Interactions with MOQ Secure Objects
 
