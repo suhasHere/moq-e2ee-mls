@@ -1217,10 +1217,10 @@ svg :is([fill="white"], [fill^="#fff"]) {
             <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-epoch-counter-service" class="internal xref">Epoch Counter Service</a></p>
 <ul class="compact toc ulBare ulEmpty">
 <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
-                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-create-join-group-api" class="internal xref">Create/Join Group API</a></p>
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-lock-api" class="internal xref">Lock API</a></p>
 </li>
               <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
-                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-commit-api" class="internal xref">Commit API</a></p>
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-increment-api" class="internal xref">Increment API</a></p>
 </li>
             </ul>
 </li>
@@ -1918,19 +1918,58 @@ with one MOQT group per MLS epoch and objectId 0 carries the MLS Commit message.
       <h2 id="name-epoch-counter-service">
 <a href="#section-7" class="section-number selfRef">7. </a><a href="#name-epoch-counter-service" class="section-name selfRef">Epoch Counter Service</a>
       </h2>
-<p id="section-7-1">TODO<a href="#section-7-1" class="pilcrow">¶</a></p>
-<div id="epoch-svc-create">
+<p id="section-7-1">A counter service tracks a collection of counters with unique identifiers.
+In an MLS context, the counter value is equal to the MLS epoch, and the
+counter identifier is the MLS group identifier.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">Before a counter can be incremented, it must be locked.  As part of the lock
+operation, the caller states what their expected next counter value, which
+much match the service's expectation in order for the caller to acquire the
+lock.  Since the actual updates to the counter are out of band, this ensures
+that the caller has the correct current value before incrementing.<a href="#section-7-2" class="pilcrow">¶</a></p>
+<p id="section-7-3">There is no explicit initialization of counters.  The first call to <code>lock</code>
+for a counter must have <code>expected_next_value</code> set to 0.<a href="#section-7-3" class="pilcrow">¶</a></p>
+<p id="section-7-4">There is no method provided to clean up counters.  A service may clean up a
+counter if it has some out-of-band mechanism to find out that the counter is
+no longer needed.  For example, in an MLS context, once the MLS group is no
+longer in use, its counter can be discarded.<a href="#section-7-4" class="pilcrow">¶</a></p>
+<div id="counter-lock">
 <section id="section-7.1">
-        <h3 id="name-create-join-group-api">
-<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-create-join-group-api" class="section-name selfRef">Create/Join Group API</a>
-      </h3>
+        <h3 id="name-lock-api">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-lock-api" class="section-name selfRef">Lock API</a>
+        </h3>
+<div class="alignLeft art-text artwork" id="section-7.1-1">
+<pre>
+GET /lock
+Content-type: application/octet-stream
+
+Body
+MLS GroupId
+MLS Epoch
+
+Response
+OK or Locked or CounterError
+</pre><a href="#section-7.1-1" class="pilcrow">¶</a>
+</div>
 </section>
 </div>
-<div id="epoch-svc-commit">
+<div id="counter-incr">
 <section id="section-7.2">
-        <h3 id="name-commit-api">
-<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-commit-api" class="section-name selfRef">Commit API</a>
-      </h3>
+        <h3 id="name-increment-api">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-increment-api" class="section-name selfRef">Increment API</a>
+        </h3>
+<div class="alignLeft art-text artwork" id="section-7.2-1">
+<pre>
+GET /increment
+Content-type: application/octet-stream
+
+Body
+LockId
+
+
+Response
+OK or UnknonwErrpr
+</pre><a href="#section-7.2-1" class="pilcrow">¶</a>
+</div>
 </section>
 </div>
 </section>
