@@ -642,14 +642,15 @@ longer in use, its counter can be discarded.
 
 ## Lock API {#counter-lock}
 
-This is a simpple REST style API over HTTPS.
+This is a simple REST style API over HTTPS.
 
 ~~~~
 GET /lock/<MLS Group ID>?val=<counter>
 ~~~~
 
-Returns body with "LOCKED" for scuesss, and current value if the counter
-for counter error.
+Returns "Ok" if lock acquistion succeded, a "Confict" response with lock is already 
+held with retry_later time value or "CounterError" with  current value of 
+the counter when the requested counter doesn't match the expected value.
 
 ## Increment API {#counter-incr}
 
@@ -659,8 +660,9 @@ POST /increment/<MLS Group ID>
 
 # Interactions with MOQ Secure Objects
 
-TODO - explain how the shared secret for each epock can be used as the
-base key for and epock can be used as the key idetifier ( KID).
+TODO - explain how the shared secret for each epoch can be used to
+derive `track_base_key` for each MOQT track  and use epoch as  key idetifier 
+(KID) in the SecureObject Header.
 
 # Security Considerations
 
