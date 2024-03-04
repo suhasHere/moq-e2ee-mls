@@ -43,6 +43,8 @@ author:
     email: snandaku@cisco.com
 
 normative:
+  MoQTransport: I-D.ietf-moq-transport
+  SecureObects: I-D.draft-jennings-moq-secure-objects
 
 informative:
 
@@ -101,7 +103,6 @@ MLS protocol, with Delivery Service (DS) acting as the rendezvous
 point. In the example setting, participants A, B and C involve in
 protocol exchange to setup end to end encrypted session keyed via MLS.
 
-TODO: Add a simple call-flow here
 
 
 ## Critical Invariants
@@ -110,25 +111,305 @@ TODO: Add a simple call-flow here
 * Linear sequence of Commits - Each Commit has exactly one successor
 
 
+# MOQ Overview {#moqt-model}
+
+MOQT {{MoQTransport}} defines a publish/subscribe based media delivery protocol, where in
+endpoints, called producers, publish objects which are delivered via
+participating relays to receiving endpoints, called consumers.
+
+Section 2 of MoQ Transport defines hierarchical object model for
+application data, comprised of objects, groups and tracks.
+
+Objects defines the basic data element, an addressable unit whose
+payload is sequence of bytes. All objects belong to a group, indicating
+ordering and potential dependencies. A track contains a sequence of
+groups and serves as the entity against which a consumer issues a
+subscription request.
+
+~~~~~
+  Media Over QUIC Application
+
+
+          |                                                       time
+          |
+ TrackA   +-+---------+-----+---------+--------------+---------+---->
+          | | Group1  |     | Group2  |  . . . . . . | GroupN  |
+          | +----+----+     +----+----+              +---------+
+          |      |               |
+          |      |               |
+          | +----+----+     +----+----+
+          | | Object0 |     | Object0 |
+          | +---------+     +---------+
+          | | Object1 |     | Object1 |
+          | +---------+     +---------+
+          | | Object2 |     | Object2 |
+          | +---------+     +---------+
+          |      .
+          |      .
+          |      .
+          | +---------+
+          | | ObjectN |
+          | +---------+
+          |
+          |                                                       time
+          |
+ TrackB   +-+---------+-----+---------+--------------+---------+---->
+          | | Group1  |     | Group2  | . . .. .. .. | GroupN  |
+          | +---+-----+     +----+----+              +----+----+
+          |     |                |                        |
+          |     |                |                        |
+          |+----+----+      +----+----+              +----+----+
+          || Object0 |      | Object0 |              | Object0 |
+          |+---------+      +---------+              +---------+
+          |
+          v
+
+
+~~~~~
+
+Objects are comprised of two parts: envelope and a payload. The envelope
+is never end to end encrypted and is always visible to relays. The
+payload portion may be end to end encrypted, in which case it is only
+visible to the producer and consumer. The application is solely
+responsible for the content of the object payload.
+
+Tracks are identified by a combination of its `TrackNamespace ` and
+`TrackName`. TrackNamespace and TrackName are treated as a sequence of
+binary bytes. Group and Objects are represented as variable length
+integers called GroupId and ObjectId respectively.
+
+## Simple Callflow
+
+Below is a simple callflow that shows the message exchange between,
+Alice (the producer) , Bob (the consumer) and Relay. The MOQT
+protocol exchange starts with Alice sending MOQT Announce message with
+TrackNamespace under which she is going to publish media tracks.
+Then Bob issues a MOQT Subscribe message to the relay for a FullTrackName
+(identified  by its TrackNamespace and TrackName) expressing his interest to
+receive media. Relay makes downstream subscription to Alice since the
+track namespace in the subscription matches the track namespace in the annoncement
+from Alice. This is followed by Alice publishing media over the requested track,
+which is eventually forwarded to Bob via the Relay.
+
+~~~~
+ ┌──────────┐                    ┌─────┐                   ┌────────┐
+ │Alice(Pub)│                    │Relay│                   │Bob(Sub)│
+ └────┬─────┘                    └──┬──┘                   └───┬────┘
+      │                             │                          │
+      │Announce(id=1,TrackNamespace)│                          │
+      │────────────────────────────>│                          │
+      │                             │                          │
+      │      AnnounceOk(id=1)       │                          │
+      │<────────────────────────────│                          │
+      │                             │                          │
+      │                             │Subscribe(id=1, TrackName)│
+      │                             │<─────────────────────────│
+      │                             │                          │
+      │                             │    SubscribeOk(id=1)     │
+      │                             │─────────────────────────>│
+      │                             │                          │
+      │ Subscribe(id=2, TrackName)  │                          │
+      │<────────────────────────────│                          │
+      │                             │                          │
+      │      SubscribeOk(id=2)      │                          │
+      │────────────────────────────>│                          │
+      │                             │                          │
+      │         Media Flow          │                          │
+      │────────────────────────────>│                          │
+      │                             │                          │
+      │                             │        Media Flow        │
+      │                             │─────────────────────────>│
+      │                             │                          │
+      │                             │    Unsubscribe(id=1)     │
+      │                             │<─────────────────────────│
+      │                             │                          │
+      │      Unsubscribe(id=1)      │                          │
+      │<────────────────────────────│                          │
+ ┌────┴─────┐                    ┌──┴──┐                   ┌───┴────┐
+ │Alice(Pub)│                    │Relay│                   │Bob(Sub)│
+ └──────────┘                    └─────┘                   └────────┘
+
+~~~~
+
+## TrackNamespace Subscription
+
+In order to realize the MLS key exchange over MOQ, this specification
+proposes MOQT endpoints and Relays to be able to subscribe to TrackNamespace.
+
+Following additions is proposed to the core MOQT protocol.
+
+### SUBSCRIBE_NAMESPACE {#message-subscribe-namespace}
+
+A subscriber sends `SUBSCRIBE_NAMESPACE` to express its interest in all
+the tracks that will eventually be produced under the requested namespace.
+
+~~~
+SUBSCRIBE_NAMESPACE
+{
+  Track Namespace (b),
+  Subscribe Namespace ID (i)
+}
+~~~
+
+
+### SUBSCRIBE_NAMESPACE_RESPONSE {#message-subscribe-namespace-response}
+
+Publishers sends `SUBSCRIBE_NAMESPACE_RESPONSE` indicating the status
+of request for subscribing to the track namespace.
+
+~~~
+SUBSCRIBE_NAMESPACE_RESPONSE
+{
+  Subscribe Namespace ID (i),
+  Status Code (i),
+  [Reason Phrase (b)]
+}
+~~~
+
+
+### NAMESPACE_INFO {#message-namespace-info}
+
+Publisher sends NAMESPACE_INFO message whenever it is ready to publish
+on new track under a track namespace requested in {{message-subscribe-namespace}}
+message. The `NAMESPACE_INFO` message is a implicit subscription, unless
+it is explicitly unsubscribed by the subscriber by sending `UNSUBSCRIBE` message.
+This message provides necessary mapping between `Track Alias`, `Subscribe Id`
+to the namespace requested in the `SUBSCRIBE NAMESPACE` message.
+
+~~~
+NAMESPACE_INFO
+{
+  Track Alias (i),
+  Subscribe ID (i),
+  Mapped Track Namespace (b),
+  Mapped Track Name (b),
+  Mapped Request Id (i)
+}
+~~~
+
 
 # MLS and MOQ
 
-Unit of MLS functionality is a group, where at any given time, a group
-represents a secret known only to its members. Membership to the group
+
+This specification defines procedures for participants engaging in MLS
+key exchange to happen over MOQT protocol, thus enabling following 2 goals:
+
+1. Use MOQT as delivery transport for MLS protocol meesages.
+
+2. Allow MOTQ endpoints (producers/consumers) to use MLS as secure
+key exchange protocol for end to end secure commnunications across
+range of use-cases.
+
+
+## High-level Design {#mls-hld}
+
+MLS {{!RFC9420}} achieves group key agreement by participants/members
+engaging in MLS protocol message exchange that allows:
+
+ - New members to express their interest to join a  MLS group
+ - Exsiting members to commit a new members to a MLS group
+ - Existing members to commit removal of existing members from a MLS group
+
+
+The central unit of functionality in MLS is a group, where at any given time,
+a group represents a secret known only to its members. Membership to the group
 can change over time. Each time membership changes (batch of joins or
 leaves), the shared secret is changed to one known only by the current
-members. Each period of time with stable membership/secret is an epoch
+members. Each period of time with stable membership/secret is an epoch.
+
+At a high level, one can envision MLS protocol operation in the form
+multiple queue abstractions to achieve the above functionality.
+
+### Keypackage Distribution
+
+All participants interested in joining a MLS group share their MLS KeyPackage(s)
+with the group, thus enabling an existing member to add new members to the
+MLS group. In this context, KeyPackages distribution/processing can be modeled
+a "queue of KeyPackages". Such a queue provides following properties:
+
+- Multiple parties to write to it, when participants submit theur KeyPackages.
+
+- Mulitple parties to read/process from the queue, to process the KeyPackage for
+  updating the MLS group state.
+
+~~~~
+
+                       +---------------------------+   +--->
+  Multiple    ---+     |                           |   |   Multiple
+ Simultenous     +---> |    MLS Keypackage Queue   | --+ Simulatenous
+   Writers       +---> |                           |   |   Readers
+              ---+     +---------------------------+   +--->
+~~~~
+
+
+### Welcoming New Member
+
+Once a MLS KeyPackage is verified, an existing member can add a new member to the
+MLS group following procedures in (see todo) and send MLS Welcome message
+to invite the new member to join the group. This procedure can be abstracted
+via a message queue for MLS Welcome messages with the following properties:
+
+  - To be able to accessible by multiple parties to write, but constrained so
+    that only one party (existing member) is allowed to write for a given epoch.
+
+  - One party, the recipient of the welcome, is be able to read the MLS Welcome
+   message in a given epoch.
+
+~~~~
+
+                       +--------------------------+   +--->
+              ---+     |                          |   |
+ 1 writer per    +---> |   MLS Welcome Queue      | --+   Single
+    epoch        +---> |                          | --+   Reader per
+              ---+     +--------------------------+   |    epoch
+                                                      +--->
+
+
+~~~~
+
+
+### Updating Group State
+
+Members can update group's state when adding a new member, removing an
+existing member or updating group's entropy at any time during a MLS
+session. Group updates are performed via MLS Commit messages and successful
+commits result in moving the MLS epoch further. MLS Commit message needs to
+be processed by all the members to compute the shared group secret for that
+epoch.
+
+The distribution of commit messages can be modeled with a message queue
+for MLS Commit messages with the following properties:
+
+  - Any member can access the commit queue for writing MLS Commit messages,
+   but only one member is allowed to write per epoch.
+
+  - All the members can read and process MLS Commit message from the commit
+    queue every epoch to update their group state.
+
+~~~~
+              ---+     +--------------------------+  +--->
+ 1 writer per     +--->|                          |--+   Multiple
+    epoch         +--->|   MLS Commit Queue       |--+ Simulatenous
+              ---+     |                          |  |    Readers
+                       +--------------------------+  +--->
+~~~~
+
+
+## MLS Group Key Exchange over MOQT
+
+Section {{mls-hld}} provided an non-normative abstracted view (via Queue metaphor) 
+to illustrate various MLS operations for setting up an MLS group. Subsections 
+below provide further normative details on realizing those abstractions via 
+concepts from the MOQT data model {{moqt-model}}
 
 ## Bootstrapping MLS Session
 
-As part of bootstrapping a MLS Session, each MOQT endpoint needs to
-perform following 2 actions:
+As part of bootstrapping a MLS Session, participating MOQT endpoints needs to
+perform the following 2 actions:
 
-1. Subscribe to MOQT track for processing MLS KeyPackages (see
-   {{{mls-tracks}}}) for processing addition of new members to the
-   group.
+1. Subscribe to MOQT track for processing MLS KeyPackages.
 
-2. Publishing their MLS keypackages identifying the credentials to the
+2. Publishing MLS keypackages identifying the credentials to the
    "keypackage" track
 
 
@@ -208,6 +489,7 @@ TODO: SHOULD we even support other updates ?
 
 # MLS MoQ Tracks {#mls-tracks}
 
+
 For all the various tracks:
 
 - The TrackNamespace is scoped to the combination of MLS Group and MLS
@@ -275,9 +557,15 @@ There is one MOQT group per MLS epoch and objectId 0 carries the MLS
 Commit message.
 
 
-# Centralized Lock Service {#lock}
+# Epoch Service {#epoch-svc}
 
-TODO: Define API for the lock service
+The following REST endpoints can then be used to access the different 
+functionalities of the Epoch Service.
+
+
+## Create/Join Group API
+
+## Commit API
 
 
 # Interactions with MOQ Secure Objects
