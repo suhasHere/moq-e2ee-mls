@@ -1213,7 +1213,7 @@ small degree of synchronization, which is provided by a simple counter service.<
                     <p id="section-toc.1-1.6.2.3.2.1.1"><a href="#section-6.3.1" class="auto internal xref">6.3.1</a>.  <a href="#name-processing-mls-welcome-mess" class="internal xref">Processing MLS Welcome Message</a></p>
 </li>
                   <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3.2.2">
-                    <p id="section-toc.1-1.6.2.3.2.2.1"><a href="#section-6.3.2" class="auto internal xref">6.3.2</a>.  <a href="#name-processing-the-mls-commit-m" class="internal xref">Processing the MLS Commit Messages</a></p>
+                    <p id="section-toc.1-1.6.2.3.2.2.1"><a href="#section-6.3.2" class="auto internal xref">6.3.2</a>.  <a href="#name-processing-mls-commit-messa" class="internal xref">Processing MLS Commit Messages</a></p>
 </li>
                 </ul>
 </li>
@@ -1730,7 +1730,7 @@ KeyPackage Namespace := &lt;mls-group-name&gt; |  "keypackages"
 <p id="section-6.1-6">Note: The MLS group name chosen should be unique within a MOQ relay network.<a href="#section-6.1-6" class="pilcrow">¶</a></p>
 <p id="section-6.1-7">All the members subscribe to the "KeyPackage Namespace" to receive
 KeyPackages published over sender specific "KeyPackage Track"s as shown below,
-where the Trackname identifes the sender of the the KeyPackage.<a href="#section-6.1-7" class="pilcrow">¶</a></p>
+where the Trackname identifies the sender of the the KeyPackage.<a href="#section-6.1-7" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-6.1-8">
 <pre>
 KeyPackage Track
@@ -1738,8 +1738,8 @@ Tracknamespace :=  KeyPackage Namespace
 Trackname      :=  SenderId
 </pre><a href="#section-6.1-8" class="pilcrow">¶</a>
 </div>
-<p id="section-6.1-9">The SenderId value choosen <span class="bcp14">MUST</span> be unique within the MOQ application. The
-<span class="bcp14">RECOMMENDED</span> way to ensure uniques would be to use certifcate fingerprint
+<p id="section-6.1-9">The SenderId value chosen <span class="bcp14">MUST</span> be unique within the MOQ application. The
+<span class="bcp14">RECOMMENDED</span> way to ensure uniques would be to use certificate fingerprint
 of the sender's public key.<a href="#section-6.1-9" class="pilcrow">¶</a></p>
 <p id="section-6.1-10">There is one MOQT Group within the KeyPackage Track and objects within that
 group identify different updates to the KeyPackage from a given publisher.
@@ -1747,7 +1747,7 @@ KeyPackage published at <code>Object ID</code> of '0' is used to initiate joinin
 a MLS group.<a href="#section-6.1-10" class="pilcrow">¶</a></p>
 <p id="section-6.1-11">Below figure depicts a sample call flow on how the MOQT Namespace subscribe
 is used to enable 2 participants (joiner1 and joiner2) to publish their
-keypackages and have the member is able to process both of them<a href="#section-6.1-11" class="pilcrow">¶</a></p>
+KeyPackages and have the member is able to process both of them<a href="#section-6.1-11" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-6.1-12">
 <pre>
 ┌───────┐                                       ┌─────┐                                       ┌───────┐┌──────┐
@@ -1809,10 +1809,10 @@ keypackages and have the member is able to process both of them<a href="#section
         <h3 id="name-creating-joining-a-mls-grou">
 <a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-creating-joining-a-mls-grou" class="section-name selfRef">Creating/Joining a MLS Group</a>
         </h3>
-<p id="section-6.2-1">Creating or Joining an MLS group requires a way for boostrapping the
+<p id="section-6.2-1">Creating or Joining an MLS group requires a way for boostraping the
 group when the first member joins and a way to decide an existing member
 for processing the MLS KeyPackage to add the new member.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
-<p id="section-6.2-2">In order to realize the above functionalities and ensure the criticial
+<p id="section-6.2-2">In order to realize the above functionalities and ensure the critical
 invariants <a href="#invariants" class="auto internal xref">Section 3.1</a>, a centralized "Epoch Counter Service"
 (see epoch-svc) is required to address/resolve contention issues
 when multiple participants carryout the create/join procedures.<a href="#section-6.2-2" class="pilcrow">¶</a></p>
@@ -1849,7 +1849,7 @@ participant and publish the MLS Welcome message (see <a href="#commits_welcome" 
         <h3 id="name-updating-group-state">
 <a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-updating-group-state" class="section-name selfRef">Updating Group State</a>
         </h3>
-<p id="section-6.3-1">Updating MLS group state requires <a href="#invariants" class="auto internal xref">Section 3.1</a> to be satifisfied. This means
+<p id="section-6.3-1">Updating MLS group state requires <a href="#invariants" class="auto internal xref">Section 3.1</a> to be satisfied. This means
 that the changes have to be done linearly and changes to the group state
 <span class="bcp14">MUST</span> be performed by a single member within a MLS group for a given epoch.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
 <p id="section-6.3-2">The process of updating the group state is described below:<a href="#section-6.3-2" class="pilcrow">¶</a></p>
@@ -1906,11 +1906,11 @@ Tracknamespace :=  Welcome Namespace
 Trackname      :=  RecipientId
 </pre><a href="#section-6.3.1-6" class="pilcrow">¶</a>
 </div>
-<p id="section-6.3.1-7">The RecipientId value choosen <span class="bcp14">MUST</span> be unique within the MOQ application. The
-<span class="bcp14">RECOMMENDED</span> way to ensure uniques would be to use certifcate fingerprint
+<p id="section-6.3.1-7">The RecipientId value chosen <span class="bcp14">MUST</span> be unique within the MOQ application. The
+<span class="bcp14">RECOMMENDED</span> way to ensure uniques would be to use certificate fingerprint
 of the recipients's public key. The group member publishing the MLS Welcome
 message can obtain the RecipientId while processing the KeyPackage of
-the member being addded.<a href="#section-6.3.1-7" class="pilcrow">¶</a></p>
+the member being added.<a href="#section-6.3.1-7" class="pilcrow">¶</a></p>
 <p id="section-6.3.1-8">On receipt of the Welcome message, local MLS state is updated with the
 received MLS Welcome message to obtain the group secret for the current
 epoch.<a href="#section-6.3.1-8" class="pilcrow">¶</a></p>
@@ -1920,8 +1920,8 @@ and objectId 0 carries the MLS Welcome message.<a href="#section-6.3.1-9" class=
 </div>
 <div id="process-commit">
 <section id="section-6.3.2">
-          <h4 id="name-processing-the-mls-commit-m">
-<a href="#section-6.3.2" class="section-number selfRef">6.3.2. </a><a href="#name-processing-the-mls-commit-m" class="section-name selfRef">Processing the MLS Commit Messages</a>
+          <h4 id="name-processing-mls-commit-messa">
+<a href="#section-6.3.2" class="section-number selfRef">6.3.2. </a><a href="#name-processing-mls-commit-messa" class="section-name selfRef">Processing MLS Commit Messages</a>
           </h4>
 <p id="section-6.3.2-1">All the members subscribe to receive MLS Commit message and they do so
 by subscribing to the "Commit Track" as shown:<a href="#section-6.3.2-1" class="pilcrow">¶</a></p>
@@ -1948,7 +1948,7 @@ with one MOQT group per MLS epoch and objectId 0 carries the MLS Commit message.
       </h2>
 <p id="section-7-1">A counter service tracks a collection of counters with unique identifiers.
 In an MLS context, the counter value is equal to the MLS epoch, and the
-counter identifier is the MLS group identifier.<a href="#section-7-1" class="pilcrow">¶</a></p>
+counter identifier is the MLS group identifier/MLS group name.<a href="#section-7-1" class="pilcrow">¶</a></p>
 <p id="section-7-2">Before a counter can be incremented, it must be locked.  As part of the lock
 operation, the caller states what their expected next counter value, which
 much match the service's expectation in order for the caller to acquire the
@@ -1969,11 +1969,11 @@ longer in use, its counter can be discarded.<a href="#section-7-4" class="pilcro
 a counter for a provided Counter ID.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-7.1-2">
 <pre>
-GET /lock/&lt;Couner ID&gt;?val=&lt;counter&gt;
+GET /lock/&lt;Counter ID&gt;?val=&lt;counter&gt;
 </pre><a href="#section-7.1-2" class="pilcrow">¶</a>
 </div>
-<p id="section-7.1-3">Returns "Ok" if lock acquistion succeded, a "Confict" response when lock is
-already held with a retry_later time for retrying the lock acquistion or a
+<p id="section-7.1-3">Returns "Ok" if lock acquisition succeeded, a "Confict" response when lock is
+already held with a retry_later time for retrying the lock acquisition or a
 "CounterError" with the current value of the counter when the requested counter
 doesn't match the <code>expected_next_value</code>.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
 </section>
@@ -2009,22 +2009,15 @@ in the group state due to an existing member commit the changes to the group.<a 
 <code>track_base_key</code> when using SecureObjects (see Section 5 ) for
 protecting the objects within a MOQT track.<a href="#section-8-2" class="pilcrow">¶</a></p>
 <p id="section-8-3">The procedure for the same is as defined below:<a href="#section-8-3" class="pilcrow">¶</a></p>
-<ol start="1" type="1" class="normal type-1" id="section-8-4">
-<li id="section-8-4.1">
-          <p id="section-8-4.1.1">For each combination of (MLS Epoch, MLS Master Key) an 'Epoch Secret' is dervied<a href="#section-8-4.1.1" class="pilcrow">¶</a></p>
-</li>
-      </ol>
+<p id="section-8-4">For each combination of (MLS Epoch, MLS Master Key) an 'Epoch Secret'
+is derived:<a href="#section-8-4" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-8-5">
 <pre>
 Epoch Secret = HKDF.Extract("SecureObject Epoch Master Key " | MLS Epoch, MLS Master Key)
 </pre><a href="#section-8-5" class="pilcrow">¶</a>
 </div>
-<ol start="1" type="1" class="normal type-1" id="section-8-6">
-<li id="section-8-6.1">
-          <p id="section-8-6.1.1">'Epoch Secret' is used to derive <code>track_base_key</code> per <code>FullTrackName</code>
-(see Section 3 of <span>[<a href="#SecureObjects" class="cite xref">SecureObjects</a>]</span>)<a href="#section-8-6.1.1" class="pilcrow">¶</a></p>
-</li>
-      </ol>
+<p id="section-8-6">'Epoch Secret' is used to derive <code>track_base_key</code> per <code>FullTrackName</code>
+(see Section 3 of <span>[<a href="#SecureObjects" class="cite xref">SecureObjects</a>]</span>):<a href="#section-8-6" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-8-7">
 <pre>
 track_base_key = HKDF.Expand("SecureObject Track Base Key " | FullTrackName, Epoch Secret)
@@ -2060,7 +2053,7 @@ Section 5 of <span>[<a href="#SecureObjects" class="cite xref">SecureObjects</a>
 <dl class="references">
 <dt id="MoQTransport">[MoQTransport]</dt>
       <dd>
-<span class="refAuthor">Curley, L.</span>, <span class="refAuthor">Pugin, K.</span>, <span class="refAuthor">Nandakumar, S.</span>, <span class="refAuthor">Vasiliev, V.</span>, and <span class="refAuthor">I. Swett</span>, <span class="refTitle">"Media over QUIC Transport"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-moq-transport-02</span>, <time datetime="2024-01-24" class="refDate">24 January 2024</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-moq-transport-02">https://datatracker.ietf.org/doc/html/draft-ietf-moq-transport-02</a>&gt;</span>. </dd>
+<span class="refAuthor">Curley, L.</span>, <span class="refAuthor">Pugin, K.</span>, <span class="refAuthor">Nandakumar, S.</span>, <span class="refAuthor">Vasiliev, V.</span>, and <span class="refAuthor">I. Swett</span>, <span class="refTitle">"Media over QUIC Transport"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-moq-transport-03</span>, <time datetime="2024-03-04" class="refDate">4 March 2024</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-moq-transport-03">https://datatracker.ietf.org/doc/html/draft-ietf-moq-transport-03</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 <dt id="RFC2119">[RFC2119]</dt>
       <dd>

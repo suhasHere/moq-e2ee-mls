@@ -90,7 +90,7 @@ Table of Contents
      6.2.  Creating/Joining a MLS Group
      6.3.  Updating Group State
        6.3.1.  Processing MLS Welcome Message
-       6.3.2.  Processing the MLS Commit Messages
+       6.3.2.  Processing MLS Commit Messages
    7.  Epoch Counter Service
      7.1.  Lock API
      7.2.  Increment API
@@ -484,15 +484,15 @@ Table of Contents
 
    All the members subscribe to the "KeyPackage Namespace" to receive
    KeyPackages published over sender specific "KeyPackage Track"s as
-   shown below, where the Trackname identifes the sender of the the
+   shown below, where the Trackname identifies the sender of the the
    KeyPackage.
 
    KeyPackage Track
    Tracknamespace :=  KeyPackage Namespace
    Trackname      :=  SenderId
 
-   The SenderId value choosen MUST be unique within the MOQ application.
-   The RECOMMENDED way to ensure uniques would be to use certifcate
+   The SenderId value chosen MUST be unique within the MOQ application.
+   The RECOMMENDED way to ensure uniques would be to use certificate
    fingerprint of the sender's public key.
 
    There is one MOQT Group within the KeyPackage Track and objects
@@ -502,7 +502,7 @@ Table of Contents
 
    Below figure depicts a sample call flow on how the MOQT Namespace
    subscribe is used to enable 2 participants (joiner1 and joiner2) to
-   publish their keypackages and have the member is able to process both
+   publish their KeyPackages and have the member is able to process both
    of them
 
 ┌───────┐                                       ┌─────┐                                       ┌───────┐┌──────┐
@@ -557,15 +557,14 @@ Table of Contents
 
 6.2.  Creating/Joining a MLS Group
 
-   Creating or Joining an MLS group requires a way for boostrapping the
+   Creating or Joining an MLS group requires a way for boostraping the
    group when the first member joins and a way to decide an existing
    member for processing the MLS KeyPackage to add the new member.
 
-   In order to realize the above functionalities and ensure the
-   criticial invariants Section 3.1, a centralized "Epoch Counter
-   Service" (see epoch-svc) is required to address/resolve contention
-   issues when multiple participants carryout the create/join
-   procedures.
+   In order to realize the above functionalities and ensure the critical
+   invariants Section 3.1, a centralized "Epoch Counter Service" (see
+   epoch-svc) is required to address/resolve contention issues when
+   multiple participants carryout the create/join procedures.
 
    Participants intending to join/create a MLS grooup, try to acquire
    lock from the counter service.  The request identifies the MLS Group
@@ -592,10 +591,10 @@ Table of Contents
 
 6.3.  Updating Group State
 
-   Updating MLS group state requires Section 3.1 to be satifisfied.
-   This means that the changes have to be done linearly and changes to
-   the group state MUST be performed by a single member within a MLS
-   group for a given epoch.
+   Updating MLS group state requires Section 3.1 to be satisfied.  This
+   means that the changes have to be done linearly and changes to the
+   group state MUST be performed by a single member within a MLS group
+   for a given epoch.
 
    The process of updating the group state is described below:
 
@@ -646,11 +645,11 @@ Table of Contents
    Tracknamespace :=  Welcome Namespace
    Trackname      :=  RecipientId
 
-   The RecipientId value choosen MUST be unique within the MOQ
+   The RecipientId value chosen MUST be unique within the MOQ
    application.  The RECOMMENDED way to ensure uniques would be to use
-   certifcate fingerprint of the recipients's public key.  The group
+   certificate fingerprint of the recipients's public key.  The group
    member publishing the MLS Welcome message can obtain the RecipientId
-   while processing the KeyPackage of the member being addded.
+   while processing the KeyPackage of the member being added.
 
    On receipt of the Welcome message, local MLS state is updated with
    the received MLS Welcome message to obtain the group secret for the
@@ -659,7 +658,7 @@ Table of Contents
    When publishing on the "Welcome Track", there is one MOQT group per
    MLS epoch and objectId 0 carries the MLS Welcome message.
 
-6.3.2.  Processing the MLS Commit Messages
+6.3.2.  Processing MLS Commit Messages
 
    All the members subscribe to receive MLS Commit message and they do
    so by subscribing to the "Commit Track" as shown:
@@ -677,7 +676,8 @@ Table of Contents
 
    A counter service tracks a collection of counters with unique
    identifiers.  In an MLS context, the counter value is equal to the
-   MLS epoch, and the counter identifier is the MLS group identifier.
+   MLS epoch, and the counter identifier is the MLS group identifier/MLS
+   group name.
 
    Before a counter can be incremented, it must be locked.  As part of
    the lock operation, the caller states what their expected next
@@ -700,11 +700,11 @@ Table of Contents
    This is a simple REST style API over HTTPS used to request lock for a
    counter for a provided Counter ID.
 
-   GET /lock/<Couner ID>?val=<counter>
+   GET /lock/<Counter ID>?val=<counter>
 
-   Returns "Ok" if lock acquistion succeded, a "Confict" response when
+   Returns "Ok" if lock acquisition succeeded, a "Confict" response when
    lock is already held with a retry_later time for retrying the lock
-   acquistion or a "CounterError" with the current value of the counter
+   acquisition or a "CounterError" with the current value of the counter
    when the requested counter doesn't match the expected_next_value.
 
 7.2.  Increment API
@@ -733,13 +733,13 @@ Table of Contents
 
    The procedure for the same is as defined below:
 
-   1.  For each combination of (MLS Epoch, MLS Master Key) an 'Epoch
-       Secret' is dervied
+   For each combination of (MLS Epoch, MLS Master Key) an 'Epoch Secret'
+   is derived:
 
 Epoch Secret = HKDF.Extract("SecureObject Epoch Master Key " | MLS Epoch, MLS Master Key)
 
-   1.  'Epoch Secret' is used to derive track_base_key per FullTrackName
-       (see Section 3 of [SecureObjects])
+   'Epoch Secret' is used to derive track_base_key per FullTrackName
+   (see Section 3 of [SecureObjects]):
 
 track_base_key = HKDF.Expand("SecureObject Track Base Key " | FullTrackName, Epoch Secret)
 
@@ -763,9 +763,9 @@ track_base_key = HKDF.Expand("SecureObject Track Base Key " | FullTrackName, Epo
    [MoQTransport]
               Curley, L., Pugin, K., Nandakumar, S., Vasiliev, V., and
               I. Swett, "Media over QUIC Transport", Work in Progress,
-              Internet-Draft, draft-ietf-moq-transport-02, 24 January
-              2024, <https://datatracker.ietf.org/doc/html/draft-ietf-
-              moq-transport-02>.
+              Internet-Draft, draft-ietf-moq-transport-03, 4 March 2024,
+              <https://datatracker.ietf.org/doc/html/draft-ietf-moq-
+              transport-03>.
 
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
