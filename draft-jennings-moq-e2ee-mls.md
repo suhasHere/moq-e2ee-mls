@@ -105,7 +105,7 @@ protocol exchange to setup end to end encrypted session keyed via MLS.
 
 
 
-## Critical Invariants
+## Critical Invariants {#invariants}
 
 * Only one group is created per moq session
 * Linear sequence of Commits - Each Commit has exactly one successor
@@ -395,69 +395,152 @@ for MLS Commit messages with the following properties:
 ~~~~
 
 
-## MLS Group Key Exchange over MOQT
+# MLS Group Key Exchange over MOQT
 
-Section {{mls-hld}} provided an non-normative abstracted view (via Queue metaphor) 
-to illustrate various MLS operations for setting up an MLS group. Subsections 
-below provide further normative details on realizing those abstractions via 
+Section {{mls-hld}} provided an non-normative abstracted view (via Queue metaphor)
+to illustrate various MLS operations. Subsections
+below provide further normative details on realizing those abstractions via
 concepts from the MOQT data model {{moqt-model}}
 
 ## Bootstrapping MLS Session
 
-As part of bootstrapping a MLS Session, participating MOQT endpoints needs to
-perform the following 2 actions:
+Each participant is provisioned, out of band, the MLS Group Name for a given
+MOQ application instance. As part of bootstrapping a MLS Session, participating
+MOQT endpoints needs to perform the following 2 actions:
 
-1. Subscribe to MOQT track for processing MLS KeyPackages.
+1. Subscribe to receive published MLS Keypackages over MOQT Track for an MLS group.
 
-2. Publishing MLS keypackages identifying the credentials to the
-   "keypackage" track
+2. Publishing MLS KeyPackages over a MOQT Track.
+
+To enable the above, following MOQT track definition is specified:
+
+The TrackNamespace, termed "KeyPackage Namespace" is divided into
+2 parts as shown below:
+
+~~~~
+KeyPackage Namespace := <mls-group-name> |  "keypackages"
+~~~~
+Note: The MLS group name chosen should be unique within a MOQ relay network.
+
+All the members subscribe to the "KeyPackage Namespace" to receive
+KeyPackages published over sender specific "KeyPackage Track"s as shown below,
+where the Trackname identifes the sender of the the KeyPackage.
+
+~~~~
+KeyPackage Track
+Tracknamespace :=  KeyPackage Namespace
+Trackname      :=  SenderId
+~~~~
+
+The SenderId value choosen MUST be unique within the MOQ application. The
+RECOMMENDED way to ensure uniques would be to use certifcate fingerprint
+of the sender's public key.
+
+There is one MOQT Group within the KeyPackage Track and objects within that
+group identify different updates to the KeyPackage from a given publisher.
+KeyPackage published at `Object ID` of '0' is used to initiate joining
+a MLS group.
+
+Below figure depicts a sample call flow on how the MOQT Namespace subscribe
+is used to enable 2 participants (joiner1 and joiner2) to publish their
+keypackages and have the member is able to process both of them
 
 
-## Joining to MLS Group
+~~~~
 
-Adding or joining an MLS group requires one of the following:
+┌───────┐                                       ┌─────┐                                       ┌───────┐┌──────┐
+│Joiner1│                                       │Relay│                                       │Joiner2││Member│
+└───┬───┘                                       └──┬──┘                                       └───┬───┘└──┬───┘
+    │                                              │                                              │       │
+    │        Announce(mls-grp1|keypackages)        │                                              │       │
+    │─────────────────────────────────────────────>│                                              │       │
+    │                                              │                                              │       │
+    │                                              │        Announce(mls-grp1|keypackages)        │       │
+    │                                              │<─────────────────────────────────────────────│       │
+    │                                              │                                              │       │
+    │                                              │      Subscribe_Namespace(mls-grp1|keypackages)       │
+    │                                              │<─────────────────────────────────────────────────────│
+    │                                              │                                              │       │
+    │  Subscribe_Namespace(mls-grp1|keypackages)   │                                              │       │
+    │<─────────────────────────────────────────────│                                              │       │
+    │                                              │                                              │       │
+    │                                              │  Subscribe_Namespace(mls-grp1|keypackages)   │       │
+    │                                              │─────────────────────────────────────────────>│       │
+    │                                              │                                              │       │
+    │Namespace_Info(namespace=mls-grp1|keypackages,│                                              │       │
+    │name=joiner1,alias=j1))                       │                                              │       │
+    │─────────────────────────────────────────────>│                                              │       │
+    │                                              │                                              │       │
+    │                                              │    Namespace_Info(namespace=mls-grp1|keypackages,    │
+    │                                              │    name=joiner1,alias=j1))                   │       │
+    │                                              │─────────────────────────────────────────────────────>│
+    │                                              │                                              │       │
+    │                                              │Namespace_Info(namespace=mls-grp1|keypackages,│       │
+    │                                              │name=joiner2,alias=j2))                       │       │
+    │                                              │<─────────────────────────────────────────────│       │
+    │                                              │                                              │       │
+    │                                              │    Namespace_Info(namespace=mls-grp1|keypackages,    │
+    │                                              │    name=joiner2,alias=j2))                   │       │
+    │                                              │─────────────────────────────────────────────────────>│
+    │                                              │                                              │       │
+    │   Object(alias=j1,.., payload=KeyPackage)    │                                              │       │
+    │─────────────────────────────────────────────>│                                              │       │
+    │                                              │                                              │       │
+    │                                              │       Object(alias=j1,.., payload=KeyPackage)│       │
+    │                                              │─────────────────────────────────────────────────────>│
+    │                                              │                                              │       │
+    │                                              │   Object(alias=j2,.., payload=KeyPackage)    │       │
+    │                                              │<─────────────────────────────────────────────│       │
+    │                                              │                                              │       │
+    │                                              │       Object(alias=j2,.., payload=KeyPackage)│       │
+    │                                              │─────────────────────────────────────────────────────>│
+┌───┴───┐                                       ┌──┴──┐                                       ┌───┴───┐┌──┴───┐
+│Joiner1│                                       │Relay│                                       │Joiner2││Member│
+└───────┘                                       └─────┘                                       └───────┘└──────┘
 
-1. A way for boostrapping the group when the first member joins.
+~~~~
 
-2. A way to choose an existing member to add a new member.
+## Creating/Joining a MLS Group
+
+Creating or Joining an MLS group requires a way for boostrapping the
+group when the first member joins and a way to decide an existing member
+who process the MLS KeyPackage to add the new member.
 
 In order to realize the above functionalities and ensure the criticial
-invariants, a centralized lock service is required to help resolve
-contention.
+invariants {{invariants}}, a centralized "Epoch Counter Service"
+(see epoch-svc) is required to address/resolve contention issues
+when multiple participants carryout the create/join procedures.
 
-Participants intending to join try to acquire lock to create/join the
-group.  If the lock can be successfully acquired and the response
-indicates "Create", the participant is the first participant and he
-creates the group unilaterally and generate the initial secret. Then the
-pariticipant release the "crate_or_join" lock.
+Participants intending to join/create a MLS grooup, try to acquire lock from
+the counter service. The request identifies the MLS Group identified by its
+GroupId and epoch '0' as the counter to obtain the lock. The response can
+be one of the following:
 
-Alternately, if the repsonse indicate "Join", then the participant
-awaits for an e existing member to process the request to join the
-group.
+* Ok: A response of OK (see resp-ok) implies that there doesn't exist an MLS Group.
+In this scenario, the participant is the first participant and thus
+creates the group unilaterally and generates the initial secret for the group.
+Following which the participant releases the acquired lock by performing the
+increment operation (see increment) for the obtained lock/counter, on the counter
+service.
 
-When an existing member receives KeyPackage, the process of adding the
-new member is as follows:
+* Locked: A response of "Locked"  (see resp-locked) implies a conflicting request
+and the requestor has to retry acquiring the lock, after the lock expiry timeout
+provided in the response.
 
-1. Acquire lock to commit to the group for a given epoch
+* CounterError: A response of CounterError implies that the service has
+a different value of the current counter than the one requested (epoch 0).
+This happens when the requested MLS Group has already been created. In such
+situations, the participant awaits for an existing member to add the
+participant and publish the MLS Welcome message (see {{commits_welcome}})
 
-2. If lock acquired sucessfully, process the keyPackage for
-   duplicates/error, create MLS Welcome and Commit messages, publish
-   them to the "Welcome" and "Commit" tracks for the MLS Group and the
-   epoch. See {{mls-tracks}} for further details on the tracks.
 
-3. If lock cannot be acquired due to conflict for a given epoch, retry
-   after a confgured timeout. One of the 2 things might happen:
+## Updating Group State {#commits_welcome}
 
-   - Another member was able to successfuly perform group update for the
-     current epoch, in which case it is recommended for the member to
-     process MLS messages before retrying the operation again for the
-     same epoch to ensure the group updates are already what the member
-     wants.
+Updating MLS group state required {{invariants}} to be satifisfied. This means
+that the changes have to be done linearly and changes to the group state
+MUST be performed by a single memeber within a MLS group.
 
-   - Another member updated the group state with commits that are
-     different from the member attempting to obtain the lock. In such a
-     scenario, the member needs to wait to process the commits in
-     transit and retry step 1 for the next right epoch in the sequence
+
 
 
 ## Processing the Welcome Message
@@ -559,13 +642,13 @@ Commit message.
 
 # Epoch Service {#epoch-svc}
 
-The following REST endpoints can then be used to access the different 
+The following REST endpoints can then be used to access the different
 functionalities of the Epoch Service.
 
 
-## Create/Join Group API
+## Create/Join Group API {#epoch-svc-create}
 
-## Commit API
+## Commit API {#epoch-svc-commit}
 
 
 # Interactions with MOQ Secure Objects
