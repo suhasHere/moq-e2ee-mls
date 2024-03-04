@@ -1,0 +1,2125 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>Secure Group Key Agreement with MLS over MoQ</title>
+<meta content="Cullen Jennings" name="author">
+<meta content="Richard L. Barnes" name="author">
+<meta content="Suhas Nandakumar" name="author">
+<meta content="
+       This specification defines a mechanism to use Message Layer Security (MLS)
+to provide end-to-end group key agreement for Media over QUIC (MOQ) applications.
+Almost all communications are done via the MOQ transport.  MLS requires a
+small degree of synchronization, which is provided by a simple counter service. 
+    " name="description">
+<meta content="xml2rfc 3.20.0" name="generator">
+<meta content="Internet-Draft" name="keyword">
+<meta content="draft-jennings-moq-e2ee-mls-latest" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.20.0
+    Python 3.11.8
+    ConfigArgParse 1.7
+    google-i18n-address 3.1.0
+    intervaltree 3.1.0
+    Jinja2 3.1.2
+    lxml 4.9.3
+    platformdirs 4.2.0
+    pycountry 22.3.5
+    PyYAML 6.0.1
+    requests 2.31.0
+    setuptools 68.2.2
+    six 1.16.0
+    wcwidth 0.2.13
+-->
+<link href="draft-jennings-moq-e2ee-mls.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Italic'), local('Lora-Italic'), url('https://martinthomson.github.io/rfc-css/fonts/lora-italic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/lora-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic-ext.woff2') format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C88, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-cyrillic.woff2') format('woff2');
+  unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: local('Lora Bold'), local('Lora-Bold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-bold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Lora SemiBold'), local('Lora-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/lora-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-vietnamese.woff2') format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+1EA0-1EF9, U+20AB;
+}
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Cabin Condensed';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: local('Cabin Condensed SemiBold'), local('CabinCondensed-SemiBold'), url('https://martinthomson.github.io/rfc-css/fonts/cabincondensed-semibold-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-024F, U+0259, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20CF, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Oxygen Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Oxygen Mono'), local('OxygenMono-Regular'), url('https://martinthomson.github.io/rfc-css/fonts/oxygenmono-regular-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --background-color: #fff;
+  --text-color: #222;
+  --title-color: #191919;
+  --link-color: #2a6496;
+  --highlight-color: #f9f9f9;
+  --line-color: #eee;
+  --pilcrow-weak: #ddd;
+  --pilcrow-strong: #bbb;
+  --small-font-size: 14.5px;
+  --font-mono: 'Oxygen Mono', monospace;
+  scrollbar-color: #bbb #eee;
+}
+body {
+  max-width: 600px;
+  margin: 75px auto;
+  padding: 0 5px;
+  color: var(--text-color);
+  background-color: var(--background-color);
+  font: 16px/22px "Lora", serif;
+  scroll-behavior: smooth;
+}
+
+.ears {
+  display: none;
+}
+
+/* headings */
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Cabin Condensed", sans-serif;
+  font-weight: 600;
+  margin: 0.8em 0 0.3em;
+  font-size-adjust: 0.5;
+  color: var(--title-color);
+}
+h1#title {
+  font-size: 32px;
+  line-height: 40px;
+  clear: both;
+}
+h1#title, h1#rfcnum {
+  margin: 1.5em 0 0.2em;
+}
+h1#rfcnum + h1#title {
+  margin: 0.2em 0;
+}
+
+h1, h2, h3 {
+  font-size: 22px;
+  line-height: 27px;
+}
+h4, h5, h6 {
+  font-size: 20px;
+  line-height: 24px;
+}
+
+/* general structure */
+.author {
+  padding-bottom: 0.3em;
+}
+#abstract+p {
+  font-size: 18px;
+  line-height: 24px;
+}
+#abstract+p code, #abstract+p samp, #abstract+p tt {
+  font-size: 16px;
+  line-height: 0;
+}
+
+p {
+  padding: 0;
+  margin: 0.5em 0;
+  text-align: left;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+/* font-family isn't space-separated, but =~ will have to do */
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: var(--highlight-color);
+  border: 1px solid var(--line-color);
+  border-radius: 3px;
+  padding: 0.5em 1em 0;
+  margin-bottom: 0.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+  width: auto;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  border: none;
+  /* this isn't optimal, but it's an existence proof.  PrinceXML doesn't
+     support flexbox yet.
+  */
+  display: table;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 0.5em 2em;
+}
+:is(ol, ul) :is(ol, ul) {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+:is(ul, ol).compact, .ulCompact, .olCompact {
+  line-height: 1;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+  clear: left;
+  --indent: 3ch;
+  /* --indent: attr(indent ch); not supported in any browser, but we can dream */
+}
+dl.olPercent {
+  --indent: 5ch;
+}
+dl > dt {
+  float: left;
+  margin-right: 2ch;
+  min-width: 8ch;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+dl > dd {
+  margin-bottom: .8em;
+  margin-left: var(--indent) !important; /* stupid element overrides */
+  min-height: 2ex;
+}
+dl.olPercent > dt {
+  min-width: calc(var(--indent) - 2ch);
+}
+:is(dl.compact, .dlCompact) > dd {
+  margin-bottom: 0;
+}
+:is(dl.compact, .dlCompact) > dd > :is(:first-child, .break:first-child + *) {
+  margin-top: 0;
+}
+:is(dl.compact, .dlCompact) > dd > :is(:last-child) {
+  margin-bottom: 0;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0;
+}
+:is(dd, span).break {
+  display: none;
+}
+
+/* links */
+a, a[href].selfRef:hover {
+  text-decoration: none;
+}
+a[href] {
+  color: var(--link-color);
+}
+a[href].selfRef, .iref + a[href].internal {
+  color: var(--text-color);
+}
+a[href]:hover {
+  text-decoration: underline;
+}
+a[href].selfRef:hover {
+  background-color: var(--highlight-color);
+}
+a.xref:is(.cite, .auto), :is(#status-of-memo, #copyright) a {
+  white-space: nowrap;
+}
+
+/* Figures */
+tt, code, pre {
+  background-color: var(--highlight-color);
+  font: 14px/22px var(--font-mono);
+}
+tt, code {
+  /* changing the font for inline elements leads to different ascender
+     and descender heights; as we want to retain baseline alignment,
+     remove leading to avoid altering the final height of lines
+     note: this fails if these blocks take an entire line,
+     a different solution would be great */
+  line-height: 0;
+}
+:is(h1, h2, h3, h4, h5, h6) :is(tt, code) {
+  font-size: 84%;
+}
+pre {
+  border: 1px solid var(--line-color);
+  font-size: 13.5px;
+  line-height: 16px;
+  letter-spacing: -0.2px;
+  margin: 5px;
+  padding: 5px;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0.5em 0;
+  padding: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption, caption {
+  font-style: italic;
+  margin: 0.5em 1.5em;
+  text-align: left;
+}
+@media screen {
+  /* Auto-collapse boilerplate. */
+  :is(#status-of-memo, #copyright) p {
+    margin: -2px 0;
+    max-height: 0;
+    transition: max-height 2s ease, margin 0.5s ease 0.5s;
+    overflow: hidden;
+  }
+  :is(#status-of-memo, #copyright):hover p,
+  :is(#status-of-memo, #copyright) h2:target ~ p {
+    margin: 0.5em 0;
+    max-height: 500px;
+    overflow: auto;
+  }
+  pre, svg {
+    display: inline-block;
+    overflow-x: auto;
+  }
+  pre {
+    max-width: 100%;
+    width: calc(100% - 22px - 1em);
+  }
+  svg {
+    max-width: calc(100% - 22px - 1em);
+  }
+  figure pre {
+    display: block;
+    width: calc(100% - 25px);
+  }
+  :is(pre, svg) + .pilcrow {
+    display: inline-block;
+    vertical-align: text-bottom;
+    padding-bottom: 8px;
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 0 2em;
+  font-style: italic;
+}
+blockquote {
+  margin: 1em 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+
+/* tables */
+table {
+  max-width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+}
+table.right {
+  margin-left: auto;
+}
+table.center {
+  margin-left: auto;
+  margin-right: auto;
+}
+table.left {
+  margin-right: auto;
+}
+thead, tbody {
+  border: 1px solid var(--line-color);
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 5px 10px;
+}
+th {
+  background-color: var(--line-color);
+}
+:is(tr:nth-child(2n), thead+tbody > tr:nth-child(2n+1)) > td {
+  background-color: var(--background-color);
+}
+:is(tr:nth-child(2n+1), thead+tbody > tr:nth-child(2n)) > td {
+  background-color: var(--highlight-color);
+}
+table caption {
+  margin: 0;
+  padding: 3px 0 3px 1em;
+}
+table p {
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  margin-left: 3px;
+  opacity: 0.2;
+  user-select: none;
+}
+a.pilcrow[href] { color: var(--pilcrow-weak); }
+a.pilcrow[href]:hover { text-decoration: none; }
+@media not print {
+  :hover > a.pilcrow {
+    opacity: 1;
+  }
+  a.pilcrow[href]:hover {
+    color: var(--pilcrow-strong);
+    background-color: transparent;
+  }
+}
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid var(--line-color);
+}
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: 600;
+  font-size: var(--small-font-size);
+}
+.role {
+  font-variant: all-small-caps;
+}
+sub, sup {
+  line-height: 1;
+  font-size: 80%;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: var(--small-font-size);
+  line-height: 18px;
+  --identifier-width: 15ch;
+}
+#identifiers dt {
+  width: var(--identifier-width);
+  min-width: var(--identifier-width);
+  clear: left;
+  float: left;
+  text-align: right;
+  margin-right: 1ch;
+}
+#identifiers dd {
+  margin: 0;
+  margin-left: calc(1em + var(--identifier-width)) !important;
+  min-width: 5em;
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #999;
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+#toc nav ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+#toc nav li {
+  line-height: 1.3em;
+  margin: 2px 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+#toc a.xref {
+  white-space: normal;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 10ch;
+  margin-right: 1.5ch;
+}
+.references dt:target::before {
+  content: "⇒";
+  width: 15px;
+  margin: 0 10px 0 -25px;
+}
+.references dd {
+  margin-left: 12ch !important;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+#rfc\.index\.index + ul {
+  margin-left: 0;
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+@media (min-width: 500px) {
+  #authors-addresses > section {
+    column-count: 2;
+    column-gap: 20px;
+  }
+  #authors-addresses > section > h2 {
+    column-span: all;
+  }
+  /* hack for break-inside: avoid-column */
+  #authors-addresses address {
+    display: inline-block;
+    break-inside: avoid-column;
+  }
+}
+
+.rfcEditorRemove p:first-of-type {
+  font-style: italic;
+}
+.cref {
+  background-color: rgba(249, 232, 105, 0.3);
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 929px) {
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 1px 0 0 0;
+    margin: 0;
+    border-bottom: 1px solid #ccc;
+    opacity: 0.6;
+  }
+  #toc.active {
+      opacity: 1;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 2px 0 2px 6px;
+    padding-right: 1em;
+    font-size: 18px;
+    line-height: 24px;
+    min-width: 190px;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 8px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    background-color: var(--background-color);
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+  #toc.active nav {
+    display: block;
+  }
+  /* Make the collapsed ToC header render white on gray also when it's a link */
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+  #toc a.toplink {
+    margin-top: 2px;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 930px) {
+  body {
+    padding-right: 360px;
+    padding-right: calc(min(180px + 20%, 500px));
+  }
+  #toc {
+    position: fixed;
+    bottom: 0;
+    right: 0;
+    right: calc(50vw - 480px);
+    width: 312px;
+    margin: 0;
+    padding: 0;
+    z-index: 1;
+  }
+  #toc h2 {
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 2em;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+  #toc nav > ul  {
+    margin-bottom: 2em;
+  }
+  #toc ul {
+    margin: 0 0 0 4px;
+    font-size: var(--small-font-size);
+  }
+  #toc ul :is(p, li) {
+    margin: 2px 0;
+    line-height: 22px;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre, .vcard {
+    page-break-inside: avoid;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  :is(h2, h3, h4, h5, h6)+*, dd {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+  .toplink {
+    display: none;
+  }
+}
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+}
+
+/* Changes introduced to fix issues found during implementation */
+
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin: 8px 0.5em 0;
+}
+
+/* Provide styling for table cell text alignment */
+table .text-left {
+  text-align: left;
+}
+table .text-center {
+  text-align: center;
+}
+table .text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 20em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Dark mode. */
+@media (prefers-color-scheme: dark) {
+:root {
+  --background-color: #121212;
+  --text-color: #f0f0f0;
+  --title-color: #fff;
+  --link-color: #4da4f0;
+  --highlight-color: #282828;
+  --line-color: #444;
+  --pilcrow-weak: #444;
+  --pilcrow-strong: #666;
+  scrollbar-color: #777 #333;
+}
+}
+
+/* SVG Trick: a prefix match works because only black and white are allowed */
+svg :is([stroke="black"], [stroke^="#000"]) {
+  stroke: var(--text-color);
+}
+svg :is([stroke="white"], [stroke^="#fff"]) {
+  stroke: var(--background-color);
+}
+svg :is([fill="black"], [fill^="#000"], :not([fill])) {
+  fill: var(--text-color);
+}
+svg :is([fill="white"], [fill^="#fff"]) {
+  fill: var(--background-color);
+}
+</style>
+
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">moq-mls</td>
+<td class="right">March 2024</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Jennings, et al.</td>
+<td class="center">Expires 5 September 2024</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">MOQ</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-jennings-moq-e2ee-mls-latest</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2024-03-04" class="published">4 March 2024</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Informational</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2024-09-05">5 September 2024</time></dd>
+<dt class="label-authors">Authors:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">C. Jennings</div>
+<div class="org">Cisco</div>
+</div>
+<div class="author">
+      <div class="author-name">R. L. Barnes</div>
+<div class="org">Cisco</div>
+</div>
+<div class="author">
+      <div class="author-name">S. Nandakumar</div>
+<div class="org">Cisco</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">Secure Group Key Agreement with MLS over MoQ</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This specification defines a mechanism to use Message Layer Security (MLS)
+to provide end-to-end group key agreement for Media over QUIC (MOQ) applications.
+Almost all communications are done via the MOQ transport.  MLS requires a
+small degree of synchronization, which is provided by a simple counter service.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        The latest revision of this draft can be found at <span><a href="https://suhashere.github.io/moq-e2ee-mls">https://suhashere.github.io/moq-e2ee-mls</a></span>.
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-jennings-moq-e2ee-mls/">https://datatracker.ietf.org/doc/draft-jennings-moq-e2ee-mls/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">
+        Discussion of this document takes place on the
+        Media over QUIC Working Group mailing list (<span><a href="mailto:moq@ietf.org">mailto:moq@ietf.org</a></span>),
+        which is archived at <span><a href="https://mailarchive.ietf.org/arch/browse/moq/">https://mailarchive.ietf.org/arch/browse/moq/</a></span>.
+        Subscribe at <span><a href="https://www.ietf.org/mailman/listinfo/moq/">https://www.ietf.org/mailman/listinfo/moq/</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+<p id="section-note.1-4">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/suhasHere/moq-e2ee-mls">https://github.com/suhasHere/moq-e2ee-mls</a></span>.<a href="#section-note.1-4" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 5 September 2024.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2024 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1" class="keepWithNext"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-mls-overview" class="internal xref">MLS Overview</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3.2.1">
+                <p id="section-toc.1-1.3.2.1.1" class="keepWithNext"><a href="#section-3.1" class="auto internal xref">3.1</a>.  <a href="#name-critical-invariants" class="internal xref">Critical Invariants</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-moq-overview" class="internal xref">MOQ Overview</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.1">
+                <p id="section-toc.1-1.4.2.1.1"><a href="#section-4.1" class="auto internal xref">4.1</a>.  <a href="#name-simple-callflow" class="internal xref">Simple Callflow</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2">
+                <p id="section-toc.1-1.4.2.2.1"><a href="#section-4.2" class="auto internal xref">4.2</a>.  <a href="#name-tracknamespace-subscription" class="internal xref">TrackNamespace Subscription</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2.2.1">
+                    <p id="section-toc.1-1.4.2.2.2.1.1"><a href="#section-4.2.1" class="auto internal xref">4.2.1</a>.  <a href="#name-subscribe_namespace" class="internal xref">SUBSCRIBE_NAMESPACE</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2.2.2">
+                    <p id="section-toc.1-1.4.2.2.2.2.1"><a href="#section-4.2.2" class="auto internal xref">4.2.2</a>.  <a href="#name-subscribe_namespace_respons" class="internal xref">SUBSCRIBE_NAMESPACE_RESPONSE</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4.2.2.2.3">
+                    <p id="section-toc.1-1.4.2.2.2.3.1"><a href="#section-4.2.3" class="auto internal xref">4.2.3</a>.  <a href="#name-namespace_info" class="internal xref">NAMESPACE_INFO</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-mls-and-moq" class="internal xref">MLS and MOQ</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1">
+                <p id="section-toc.1-1.5.2.1.1"><a href="#section-5.1" class="auto internal xref">5.1</a>.  <a href="#name-high-level-design" class="internal xref">High-level Design</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1.2.1">
+                    <p id="section-toc.1-1.5.2.1.2.1.1"><a href="#section-5.1.1" class="auto internal xref">5.1.1</a>.  <a href="#name-keypackage-distribution" class="internal xref">KeyPackage Distribution</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1.2.2">
+                    <p id="section-toc.1-1.5.2.1.2.2.1"><a href="#section-5.1.2" class="auto internal xref">5.1.2</a>.  <a href="#name-welcoming-new-member" class="internal xref">Welcoming New Member</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5.2.1.2.3">
+                    <p id="section-toc.1-1.5.2.1.2.3.1"><a href="#section-5.1.3" class="auto internal xref">5.1.3</a>.  <a href="#name-updating-mls-group-state" class="internal xref">Updating MLS Group State</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-mls-group-key-exchange-over" class="internal xref">MLS Group Key Exchange over MOQT</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.1">
+                <p id="section-toc.1-1.6.2.1.1"><a href="#section-6.1" class="auto internal xref">6.1</a>.  <a href="#name-bootstrapping-mls-session" class="internal xref">Bootstrapping MLS Session</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.2">
+                <p id="section-toc.1-1.6.2.2.1"><a href="#section-6.2" class="auto internal xref">6.2</a>.  <a href="#name-creating-joining-a-mls-grou" class="internal xref">Creating/Joining a MLS Group</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3">
+                <p id="section-toc.1-1.6.2.3.1"><a href="#section-6.3" class="auto internal xref">6.3</a>.  <a href="#name-updating-group-state" class="internal xref">Updating Group State</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3.2.1">
+                    <p id="section-toc.1-1.6.2.3.2.1.1"><a href="#section-6.3.1" class="auto internal xref">6.3.1</a>.  <a href="#name-processing-mls-welcome-mess" class="internal xref">Processing MLS Welcome Message</a></p>
+</li>
+                  <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6.2.3.2.2">
+                    <p id="section-toc.1-1.6.2.3.2.2.1"><a href="#section-6.3.2" class="auto internal xref">6.3.2</a>.  <a href="#name-processing-mls-commit-messa" class="internal xref">Processing MLS Commit Messages</a></p>
+</li>
+                </ul>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-epoch-counter-service" class="internal xref">Epoch Counter Service</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.1">
+                <p id="section-toc.1-1.7.2.1.1"><a href="#section-7.1" class="auto internal xref">7.1</a>.  <a href="#name-lock-api" class="internal xref">Lock API</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7.2.2">
+                <p id="section-toc.1-1.7.2.2.1"><a href="#section-7.2" class="auto internal xref">7.2</a>.  <a href="#name-increment-api" class="internal xref">Increment API</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-interactions-with-moq-secur" class="internal xref">Interactions with MOQ Secure Objects</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#appendix-A" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#appendix-B" class="auto internal xref"></a><a href="#name-authors-addresses" class="internal xref">Authors' Addresses</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">Media Over QUIC Transport (MOQT) is a protocol that is optimized for the
+QUIC protocol, either directly or via WebTransport, for the
+dissemination of delivery of low latency media. MOQT defines a
+publish/subscribe media delivery layer across set of participating
+relays for supporting wide range of use-cases with different resiliency
+and latency (live, interactive) needs without compromising the
+scalability and cost effectiveness associated with content delivery
+networks. It supports sending media objects through sets of relays
+nodes.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">MLS is a key establishment protocol that provides efficient asynchronous
+group key establishment with forward secrecy (FS) and post-compromise
+security (PCS) for groups in size ranging from two to thousands.<a href="#section-1-2" class="pilcrow">¶</a></p>
+<p id="section-1-3">This document defines procedures for MOQ endpoints to engage in
+secure E2EE key establishment protocol using MLS over MOQT.<a href="#section-1-3" class="pilcrow">¶</a></p>
+<p id="section-1-4">More specifically, this document provides<a href="#section-1-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-1-5.1">
+          <p id="section-1-5.1.1">Design for using MOQT data model to carrying out MLS protocol exchange<a href="#section-1-5.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-5.2">
+          <p id="section-1-5.2.1">Simple counter service interface enabling synchronization of MLS protocol
+messages.<a href="#section-1-5.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-1-5.3">
+          <p id="section-1-5.3.1">Procedures to derive keys for MOQT object protection when using <span>[<a href="#SecureObjects" class="cite xref">SecureObjects</a>]</span>.<a href="#section-1-5.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="conventions-and-definitions">
+<section id="section-2">
+      <h2 id="name-conventions-and-definitions">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-definitions" class="section-name selfRef">Conventions and Definitions</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<p id="section-2-2">The "|" operator is is used to indicate concatenation of two strings or
+bytes arrays.<a href="#section-2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="mls-overview">
+<section id="section-3">
+      <h2 id="name-mls-overview">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-mls-overview" class="section-name selfRef">MLS Overview</a>
+      </h2>
+<p id="section-3-1">MLS protocol provides continuous group authenticated key exchange.  MLS
+provides several important security properties<a href="#section-3-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-3-2.1">
+          <p id="section-3-2.1.1">Group Key Exchange: All members of the group at a given time know a
+secret key that is inaccessible to parties outside the group.<a href="#section-3-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-2.2">
+          <p id="section-3-2.2.1">Authentication of group members: Each member of the group can
+authenticate the other members of the group.<a href="#section-3-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-2.3">
+          <p id="section-3-2.3.1">Group Agreement: The members of the group all agree on the identities
+of the participants in the group.<a href="#section-3-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-2.4">
+          <p id="section-3-2.4.1">Forward Secrecy: There are protocol events such that if a member's
+state is compromised after the event, group secrets created before the
+event are safe.<a href="#section-3-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-3-2.5">
+          <p id="section-3-2.5.1">Post-compromise Security: There are protocol events such that if a
+member's state is compromised before the event, the group secrets
+created after the event are safe.<a href="#section-3-2.5.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-3-3">At a very high level, MLS protocol operates by participants sending
+proposals to add/remove/update the group state and an active member of
+the group commit the proposals to move the group’s cryptographic state
+from one epoch to the next (see section 3.2 of <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span>).<a href="#section-3-3" class="pilcrow">¶</a></p>
+<p id="section-3-4">In order to setup end to end encryption of media delivered over MOQT
+delivery network, producers and consumers participate in the MLS
+exchange to setup group secret through which are used to derive the
+keys needed for encrypting the media/data published by the members of
+the MLS group.<a href="#section-3-4" class="pilcrow">¶</a></p>
+<div id="invariants">
+<section id="section-3.1">
+        <h3 id="name-critical-invariants">
+<a href="#section-3.1" class="section-number selfRef">3.1. </a><a href="#name-critical-invariants" class="section-name selfRef">Critical Invariants</a>
+        </h3>
+<p id="section-3.1-1">MLS requires a linear sequence of MLS Commits in that each MLS Commit
+has exactly one successor. This is achieved by using a centralized
+server that hands out a token to the client that is allowed to make
+the next commit.<a href="#section-3.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="moqt-model">
+<section id="section-4">
+      <h2 id="name-moq-overview">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-moq-overview" class="section-name selfRef">MOQ Overview</a>
+      </h2>
+<p id="section-4-1">MOQT <span>[<a href="#MoQTransport" class="cite xref">MoQTransport</a>]</span> defines a publish/subscribe based media delivery protocol, where in
+endpoints, called producers, publish objects which are delivered via
+participating relays to receiving endpoints, called consumers.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<p id="section-4-2">Section 2 of MoQ Transport defines hierarchical object model for
+application data, comprised of objects, groups and tracks.<a href="#section-4-2" class="pilcrow">¶</a></p>
+<p id="section-4-3">Objects defines the basic data element, an addressable unit whose
+payload is sequence of bytes. All objects belong to a group, indicating
+ordering and potential dependencies. A track contains a sequence of
+groups and serves as the entity against which a consumer issues a
+subscription request.<a href="#section-4-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4-4">
+<pre>
+  Media Over QUIC Application
+
+
+          |                                                       time
+          |
+ TrackA   +-+---------+-----+---------+--------------+---------+----&gt;
+          | | Group1  |     | Group2  |  . . . . . . | GroupN  |
+          | +----+----+     +----+----+              +---------+
+          |      |               |
+          |      |               |
+          | +----+----+     +----+----+
+          | | Object0 |     | Object0 |
+          | +---------+     +---------+
+          | | Object1 |     | Object1 |
+          | +---------+     +---------+
+          | | Object2 |     | Object2 |
+          | +---------+     +---------+
+          |      .
+          |      .
+          |      .
+          | +---------+
+          | | ObjectN |
+          | +---------+
+          |
+          |                                                       time
+          |
+ TrackB   +-+---------+-----+---------+--------------+---------+----&gt;
+          | | Group1  |     | Group2  | . . .. .. .. | GroupN  |
+          | +---+-----+     +----+----+              +----+----+
+          |     |                |                        |
+          |     |                |                        |
+          |+----+----+      +----+----+              +----+----+
+          || Object0 |      | Object0 |              | Object0 |
+          |+---------+      +---------+              +---------+
+          |
+          v
+
+
+</pre><a href="#section-4-4" class="pilcrow">¶</a>
+</div>
+<p id="section-4-5">Objects are comprised of two parts: envelope and a payload. The envelope
+is never end to end encrypted and is always visible to relays. The
+payload portion may be end to end encrypted, in which case it is only
+visible to the producer and consumer. The application is solely
+responsible for the content of the object payload.<a href="#section-4-5" class="pilcrow">¶</a></p>
+<p id="section-4-6">Tracks are identified by a combination of its <code>TrackNamespace </code> and
+<code>TrackName</code>. TrackNamespace and TrackName are treated as a sequence of
+binary bytes. Group and Objects are represented as variable length
+integers called GroupId and ObjectId respectively.<a href="#section-4-6" class="pilcrow">¶</a></p>
+<div id="simple-callflow">
+<section id="section-4.1">
+        <h3 id="name-simple-callflow">
+<a href="#section-4.1" class="section-number selfRef">4.1. </a><a href="#name-simple-callflow" class="section-name selfRef">Simple Callflow</a>
+        </h3>
+<p id="section-4.1-1">Below is a simple callflow that shows the message exchange between,
+Alice (the producer) , Bob (the consumer) and Relay. The MOQT
+protocol exchange starts with Alice sending MOQT Announce message with
+TrackNamespace under which she is going to publish media tracks.
+Then Bob issues a MOQT Subscribe message to the relay for a FullTrackName
+(identified  by its TrackNamespace and TrackName) expressing his interest to
+receive media. Relay makes downstream subscription to Alice since the
+track namespace in the subscription matches the track namespace in the announcement
+from Alice. This is followed by Alice publishing media over the requested track,
+which is eventually forwarded to Bob via the Relay.<a href="#section-4.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.1-2">
+<pre>
+ ┌──────────┐                    ┌─────┐                   ┌────────┐
+ │Alice(Pub)│                    │Relay│                   │Bob(Sub)│
+ └────┬─────┘                    └──┬──┘                   └───┬────┘
+      │                             │                          │
+      │Announce(id=1,TrackNamespace)│                          │
+      │────────────────────────────&gt;│                          │
+      │                             │                          │
+      │      AnnounceOk(id=1)       │                          │
+      │&lt;────────────────────────────│                          │
+      │                             │                          │
+      │                             │Subscribe(id=1, TrackName)│
+      │                             │&lt;─────────────────────────│
+      │                             │                          │
+      │                             │    SubscribeOk(id=1)     │
+      │                             │─────────────────────────&gt;│
+      │                             │                          │
+      │ Subscribe(id=2, TrackName)  │                          │
+      │&lt;────────────────────────────│                          │
+      │                             │                          │
+      │      SubscribeOk(id=2)      │                          │
+      │────────────────────────────&gt;│                          │
+      │                             │                          │
+      │        Object Flow          │                          │
+      │────────────────────────────&gt;│                          │
+      │                             │                          │
+      │                             │       Object Flow        │
+      │                             │─────────────────────────&gt;│
+      │                             │                          │
+      │                             │    Unsubscribe(id=1)     │
+      │                             │&lt;─────────────────────────│
+      │                             │                          │
+      │      Unsubscribe(id=1)      │                          │
+      │&lt;────────────────────────────│                          │
+ ┌────┴─────┐                    ┌──┴──┐                   ┌───┴────┐
+ │Alice(Pub)│                    │Relay│                   │Bob(Sub)│
+ └──────────┘                    └─────┘                   └────────┘
+
+</pre><a href="#section-4.1-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="tracknamespace-subscription">
+<section id="section-4.2">
+        <h3 id="name-tracknamespace-subscription">
+<a href="#section-4.2" class="section-number selfRef">4.2. </a><a href="#name-tracknamespace-subscription" class="section-name selfRef">TrackNamespace Subscription</a>
+        </h3>
+<p id="section-4.2-1">In order to realize the MLS key exchange over MOQ, this specification
+proposes MOQT endpoints and Relays to be able to subscribe to TrackNamespace.
+A sketch of the proposal is here but this would be moved out of this draft.<a href="#section-4.2-1" class="pilcrow">¶</a></p>
+<p id="section-4.2-2">Following additions is proposed to the core MOQT protocol.<a href="#section-4.2-2" class="pilcrow">¶</a></p>
+<div id="message-subscribe-namespace">
+<section id="section-4.2.1">
+          <h4 id="name-subscribe_namespace">
+<a href="#section-4.2.1" class="section-number selfRef">4.2.1. </a><a href="#name-subscribe_namespace" class="section-name selfRef">SUBSCRIBE_NAMESPACE</a>
+          </h4>
+<p id="section-4.2.1-1">A subscriber sends <code>SUBSCRIBE_NAMESPACE</code> to express its interest in all
+the tracks that will eventually be produced under the requested namespace.<a href="#section-4.2.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.2.1-2">
+<pre>
+SUBSCRIBE_NAMESPACE
+{
+  Track Namespace (b),
+  Subscribe Namespace ID (i)
+}
+</pre><a href="#section-4.2.1-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="message-subscribe-namespace-response">
+<section id="section-4.2.2">
+          <h4 id="name-subscribe_namespace_respons">
+<a href="#section-4.2.2" class="section-number selfRef">4.2.2. </a><a href="#name-subscribe_namespace_respons" class="section-name selfRef">SUBSCRIBE_NAMESPACE_RESPONSE</a>
+          </h4>
+<p id="section-4.2.2-1">Publishers sends <code>SUBSCRIBE_NAMESPACE_RESPONSE</code> indicating the status
+of the request for subscribing to the track namespace.<a href="#section-4.2.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.2.2-2">
+<pre>
+SUBSCRIBE_NAMESPACE_RESPONSE
+{
+  Subscribe Namespace ID (i),
+  Status Code (i),
+  [Reason Phrase (b)]
+}
+</pre><a href="#section-4.2.2-2" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="message-namespace-info">
+<section id="section-4.2.3">
+          <h4 id="name-namespace_info">
+<a href="#section-4.2.3" class="section-number selfRef">4.2.3. </a><a href="#name-namespace_info" class="section-name selfRef">NAMESPACE_INFO</a>
+          </h4>
+<p id="section-4.2.3-1">Publisher sends NAMESPACE_INFO message whenever it is ready to publish
+on new track under a track namespace <a href="#message-subscribe-namespace" class="auto internal xref">Section 4.2.1</a>
+message. The <code>NAMESPACE_INFO</code> message is a implicit subscription to the
+track, unless it is explicitly unsubscribed by the subscriber by
+sending <code>UNSUBSCRIBE</code> message. This message provides necessary mapping
+between <code>Track Alias</code>, <code>Subscribe Id</code> to the namespace requested in
+the <code>SUBSCRIBE NAMESPACE</code> message.<a href="#section-4.2.3-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-4.2.3-2">
+<pre>
+NAMESPACE_INFO
+{
+  Track Alias (i),
+  Subscribe ID (i),
+  Mapped Track Namespace (b),
+  Mapped Track Name (b),
+  Mapped Request Id (i)
+}
+</pre><a href="#section-4.2.3-2" class="pilcrow">¶</a>
+</div>
+<p id="section-4.2.3-3"><a href="#bootstrapping" class="auto internal xref">Section 6.1</a> provides one of the applications of namespace subscription
+for MLS KeyPackage distribution.<a href="#section-4.2.3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="mls-and-moq">
+<section id="section-5">
+      <h2 id="name-mls-and-moq">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-mls-and-moq" class="section-name selfRef">MLS and MOQ</a>
+      </h2>
+<p id="section-5-1">This specification defines procedures for participants engaging in MLS
+key exchange to happen over MOQT protocol, thus enabling following 2 goals:<a href="#section-5-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-5-2">
+<li id="section-5-2.1">
+          <p id="section-5-2.1.1">Use MOQT as delivery transport for MLS protocol messages.<a href="#section-5-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-5-2.2">
+          <p id="section-5-2.2.1">Allow MOQT endpoints (producers/consumers) to use MLS as secure
+key exchange protocol for end to end secure communications across
+range of use-cases.<a href="#section-5-2.2.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<div id="mls-hld">
+<section id="section-5.1">
+        <h3 id="name-high-level-design">
+<a href="#section-5.1" class="section-number selfRef">5.1. </a><a href="#name-high-level-design" class="section-name selfRef">High-level Design</a>
+        </h3>
+<p id="section-5.1-1">MLS <span>[<a href="#RFC9420" class="cite xref">RFC9420</a>]</span> achieves group key agreement by participants/members
+engaging in MLS protocol message exchange that allows:<a href="#section-5.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.1-2.1">
+            <p id="section-5.1-2.1.1">New members to express their interest to join a  MLS group<a href="#section-5.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.1-2.2">
+            <p id="section-5.1-2.2.1">Existing members to commit a new members to a MLS group<a href="#section-5.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-5.1-2.3">
+            <p id="section-5.1-2.3.1">Existing members to commit removal of existing members from a MLS group<a href="#section-5.1-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-5.1-3">The central unit of functionality in MLS is a group, where at any given time,
+a group represents a secret known only to its members. Membership to the group
+can change over time. Each time membership changes (batch of joins or
+leaves), the shared secret is changed to one known only by the current
+members. Each period of time with stable membership/secret is an epoch.<a href="#section-5.1-3" class="pilcrow">¶</a></p>
+<p id="section-5.1-4">At a high level, one can envision MLS protocol operation in the form
+multiple queue abstractions to achieve the above functionality.<a href="#section-5.1-4" class="pilcrow">¶</a></p>
+<div id="keypackage-distribution">
+<section id="section-5.1.1">
+          <h4 id="name-keypackage-distribution">
+<a href="#section-5.1.1" class="section-number selfRef">5.1.1. </a><a href="#name-keypackage-distribution" class="section-name selfRef">KeyPackage Distribution</a>
+          </h4>
+<p id="section-5.1.1-1">All participants interested in joining a MLS group share their MLS KeyPackage(s)
+with the group, thus enabling an existing member to add new members to the
+MLS group. In this context, KeyPackages distribution/processing can be modeled
+a "queue of KeyPackages". Such a queue provides following properties:<a href="#section-5.1.1-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.1.1-2.1">
+              <p id="section-5.1.1-2.1.1">Multiple parties to write to it, when participants submit their KeyPackages.<a href="#section-5.1.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-5.1.1-2.2">
+              <p id="section-5.1.1-2.2.1">Multiple parties to read/process from the queue, to process the KeyPackage for
+updating the MLS group state.<a href="#section-5.1.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<div class="alignLeft art-text artwork" id="section-5.1.1-3">
+<pre>
+                       +---------------------------+   +---&gt;
+  Multiple    ---+     |                           |   |   Multiple
+ Simultaneous    +---&gt; |    MLS KeyPackage Queue   | --+ Simultaneous
+   Writers       +---&gt; |                           |   |   Readers
+              ---+     +---------------------------+   +---&gt;
+</pre><a href="#section-5.1.1-3" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="welcoming-new-member">
+<section id="section-5.1.2">
+          <h4 id="name-welcoming-new-member">
+<a href="#section-5.1.2" class="section-number selfRef">5.1.2. </a><a href="#name-welcoming-new-member" class="section-name selfRef">Welcoming New Member</a>
+          </h4>
+<p id="section-5.1.2-1">Once a MLS KeyPackage is verified, an existing member can add a new member to the
+MLS group and send MLS Welcome message to invite the new member to join the
+group. This procedure can be abstracted via message queues for each joiner to
+receive MLS Welcome messages with the following properties:<a href="#section-5.1.2-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.1.2-2.1">
+              <p id="section-5.1.2-2.1.1">Accessible by multiple parties to write, but constrained so
+that only one party is allowed to write for a given epoch.<a href="#section-5.1.2-2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-5.1.2-2.2">
+              <p id="section-5.1.2-2.2.1">One party, the recipient of the welcome message, is be able to read the
+MLS Welcome message.<a href="#section-5.1.2-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<div class="alignLeft art-text artwork" id="section-5.1.2-3">
+<pre>
+                       +--------------------------+   +---&gt;
+              ---+     |                          |   |
+ 1 writer per    +---&gt; |   MLS Welcome Queues     | --+   Single
+    epoch        +---&gt; |   (1 queue per joiner)   | --+   Reader
+              ---+     +--------------------------+   |
+                                                      +---&gt;
+</pre><a href="#section-5.1.2-3" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="updating-mls-group-state">
+<section id="section-5.1.3">
+          <h4 id="name-updating-mls-group-state">
+<a href="#section-5.1.3" class="section-number selfRef">5.1.3. </a><a href="#name-updating-mls-group-state" class="section-name selfRef">Updating MLS Group State</a>
+          </h4>
+<p id="section-5.1.3-1">Members can update group's state when adding a new member, removing an
+existing member or updating group's entropy at any time during a MLS
+session. Group updates are performed via MLS Commit messages and successful
+commits result in moving the MLS epoch further. MLS Commit message needs to
+be processed by all the members to compute the shared group secret for that
+epoch.<a href="#section-5.1.3-1" class="pilcrow">¶</a></p>
+<p id="section-5.1.3-2">The distribution of commit messages can be modeled with a message queue
+for MLS Commit messages with the following properties:<a href="#section-5.1.3-2" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-5.1.3-3.1">
+              <p id="section-5.1.3-3.1.1">Any member can access the commit queue for writing MLS Commit messages,
+but only one member is allowed to write per epoch.<a href="#section-5.1.3-3.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-5.1.3-3.2">
+              <p id="section-5.1.3-3.2.1">All the members can read and process MLS Commit message from the commit
+queue to update their group state.<a href="#section-5.1.3-3.2.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+<div class="alignLeft art-text artwork" id="section-5.1.3-4">
+<pre>
+              ---+     +--------------------------+  +---&gt;
+ 1 writer per     +---&gt;|                          |--+   Multiple
+    epoch         +---&gt;|   MLS Commit Queue       |--+ Simultaneous
+              ---+     |                          |  |    Readers
+                       +--------------------------+  +---&gt;
+</pre><a href="#section-5.1.3-4" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="mls-group-key-exchange-over-moqt">
+<section id="section-6">
+      <h2 id="name-mls-group-key-exchange-over">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-mls-group-key-exchange-over" class="section-name selfRef">MLS Group Key Exchange over MOQT</a>
+      </h2>
+<p id="section-6-1">Section <a href="#mls-hld" class="auto internal xref">Section 5.1</a> provided an non-normative abstracted view (via Queue metaphor)
+to illustrate various MLS operations. Subsections
+below provide further normative details on realizing those abstractions via
+concepts from the MOQT data model (see <a href="#moqt-model" class="auto internal xref">Section 4</a>).<a href="#section-6-1" class="pilcrow">¶</a></p>
+<div id="bootstrapping">
+<section id="section-6.1">
+        <h3 id="name-bootstrapping-mls-session">
+<a href="#section-6.1" class="section-number selfRef">6.1. </a><a href="#name-bootstrapping-mls-session" class="section-name selfRef">Bootstrapping MLS Session</a>
+        </h3>
+<p id="section-6.1-1">Each participant is provisioned, out of band, the MLS Group Name for a given
+MOQ application instance. As part of bootstrapping a MLS Session, participating
+MOQT endpoints needs to perform the following 2 actions:<a href="#section-6.1-1" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-6.1-2">
+<li id="section-6.1-2.1">
+            <p id="section-6.1-2.1.1">Subscribe to receive published MLS KeyPackages over MOQT Track for an MLS group.<a href="#section-6.1-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-6.1-2.2">
+            <p id="section-6.1-2.2.1">Publishing MLS KeyPackages over a MOQT Track.<a href="#section-6.1-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-6.1-3">To enable the above, following MOQT track definition is specified:<a href="#section-6.1-3" class="pilcrow">¶</a></p>
+<p id="section-6.1-4">The TrackNamespace, termed "KeyPackage Namespace" is made up of
+2 parts as shown below:<a href="#section-6.1-4" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6.1-5">
+<pre>
+KeyPackage Namespace := &lt;mls-group-name&gt; |  "keypackages"
+</pre><a href="#section-6.1-5" class="pilcrow">¶</a>
+</div>
+<p id="section-6.1-6">Note: The MLS group name chosen should be unique within a MOQ relay network.<a href="#section-6.1-6" class="pilcrow">¶</a></p>
+<p id="section-6.1-7">All the members subscribe to the "KeyPackage Namespace" to receive
+KeyPackages published over sender specific "KeyPackage Track"s as shown below,
+where the Trackname identifies the sender of the the KeyPackage.<a href="#section-6.1-7" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6.1-8">
+<pre>
+KeyPackage Track
+Tracknamespace :=  KeyPackage Namespace
+Trackname      :=  SenderId
+</pre><a href="#section-6.1-8" class="pilcrow">¶</a>
+</div>
+<p id="section-6.1-9">The SenderId value chosen <span class="bcp14">MUST</span> be unique within the MOQ application. The
+<span class="bcp14">RECOMMENDED</span> way to ensure uniques would be to use certificate fingerprint
+of the sender's public key.<a href="#section-6.1-9" class="pilcrow">¶</a></p>
+<p id="section-6.1-10">There is one MOQT Group within the KeyPackage Track and objects within that
+group identify different updates to the KeyPackage from a given publisher.
+KeyPackage published at <code>Object ID</code> of '0' is used to initiate joining
+a MLS group.<a href="#section-6.1-10" class="pilcrow">¶</a></p>
+<p id="section-6.1-11">Below figure depicts a sample call flow on how the MOQT Namespace subscribe
+is used to enable 2 participants (joiner1 and joiner2) to publish their
+KeyPackages and have the member is able to process both of them<a href="#section-6.1-11" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6.1-12">
+<pre>
+┌───────┐                                       ┌─────┐                                       ┌───────┐┌──────┐
+│Joiner1│                                       │Relay│                                       │Joiner2││Member│
+└───┬───┘                                       └──┬──┘                                       └───┬───┘└──┬───┘
+    │                                              │                                              │       │
+    │        Announce(mls-grp1|keypackages)        │                                              │       │
+    │─────────────────────────────────────────────&gt;│                                              │       │
+    │                                              │                                              │       │
+    │                                              │        Announce(mls-grp1|keypackages)        │       │
+    │                                              │&lt;─────────────────────────────────────────────│       │
+    │                                              │                                              │       │
+    │                                              │      Subscribe_Namespace(mls-grp1|keypackages)       │
+    │                                              │&lt;─────────────────────────────────────────────────────│
+    │                                              │                                              │       │
+    │  Subscribe_Namespace(mls-grp1|keypackages)   │                                              │       │
+    │&lt;─────────────────────────────────────────────│                                              │       │
+    │                                              │                                              │       │
+    │                                              │  Subscribe_Namespace(mls-grp1|keypackages)   │       │
+    │                                              │─────────────────────────────────────────────&gt;│       │
+    │                                              │                                              │       │
+    │Namespace_Info(namespace=mls-grp1|keypackages,│                                              │       │
+    │name=joiner1,alias=j1)                       │                                              │       │
+    │─────────────────────────────────────────────&gt;│                                              │       │
+    │                                              │                                              │       │
+    │                                              │    Namespace_Info(namespace=mls-grp1|keypackages,    │
+    │                                              │    name=joiner1,alias=j1)                   │       │
+    │                                              │─────────────────────────────────────────────────────&gt;│
+    │                                              │                                              │       │
+    │                                              │Namespace_Info(namespace=mls-grp1|keypackages,│       │
+    │                                              │name=joiner2,alias=j2)                       │       │
+    │                                              │&lt;─────────────────────────────────────────────│       │
+    │                                              │                                              │       │
+    │                                              │    Namespace_Info(namespace=mls-grp1|keypackages,    │
+    │                                              │    name=joiner2,alias=j2)                   │       │
+    │                                              │─────────────────────────────────────────────────────&gt;│
+    │                                              │                                              │       │
+    │   Object(alias=j1,.., payload=KeyPackage)    │                                              │       │
+    │─────────────────────────────────────────────&gt;│                                              │       │
+    │                                              │                                              │       │
+    │                                              │       Object(alias=j1,.., payload=KeyPackage)│       │
+    │                                              │─────────────────────────────────────────────────────&gt;│
+    │                                              │                                              │       │
+    │                                              │   Object(alias=j2,.., payload=KeyPackage)    │       │
+    │                                              │&lt;─────────────────────────────────────────────│       │
+    │                                              │                                              │       │
+    │                                              │       Object(alias=j2,.., payload=KeyPackage)│       │
+    │                                              │─────────────────────────────────────────────────────&gt;│
+┌───┴───┐                                       ┌──┴──┐                                       ┌───┴───┐┌──┴───┐
+│Joiner1│                                       │Relay│                                       │Joiner2││Member│
+└───────┘                                       └─────┘                                       └───────┘└──────┘
+
+</pre><a href="#section-6.1-12" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+<div id="creatingjoining-a-mls-group">
+<section id="section-6.2">
+        <h3 id="name-creating-joining-a-mls-grou">
+<a href="#section-6.2" class="section-number selfRef">6.2. </a><a href="#name-creating-joining-a-mls-grou" class="section-name selfRef">Creating/Joining a MLS Group</a>
+        </h3>
+<p id="section-6.2-1">Creating or Joining an MLS group requires a way for boostraping the
+group when the first member joins and a way to decide an existing member
+for processing the MLS KeyPackage to add the new member.<a href="#section-6.2-1" class="pilcrow">¶</a></p>
+<p id="section-6.2-2">In order to realize the above functionalities and ensure the critical
+invariants <a href="#invariants" class="auto internal xref">Section 3.1</a>, a centralized "Epoch Counter Service"
+(see epoch-svc) is required to address/resolve contention issues
+when multiple participants carryout the create/join procedures.<a href="#section-6.2-2" class="pilcrow">¶</a></p>
+<p id="section-6.2-3">Participants intending to join/create a MLS grooup, try to acquire lock from
+the counter service. The request identifies the MLS Group identified by its
+GroupId and epoch '0' as the counter to obtain the lock. The response can
+be one of the following:<a href="#section-6.2-3" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-6.2-4.1">
+            <p id="section-6.2-4.1.1">Ok: A response of OK implies that there doesn't exist an MLS Group.
+In this scenario, the participant is the first participant and thus
+creates the group unilaterally and generates the initial secret for the group.
+Following which the participant releases the acquired lock by performing the
+increment operation for the obtained lock, on the counter
+service.<a href="#section-6.2-4.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.2-4.2">
+            <p id="section-6.2-4.2.1">Locked: A response of "Locked"  implies a conflicting request
+and the requestor has to retry acquiring the lock, after the lock expiry timeout
+provided in the response.<a href="#section-6.2-4.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-6.2-4.3">
+            <p id="section-6.2-4.3.1">CounterError: A response of CounterError implies that the service has
+a different value of the current counter than the one requested (epoch 0).
+This happens when the requested MLS Group has already been created. In such
+situations, the participant awaits for an existing member to add the
+participant and publish the MLS Welcome message (see <a href="#commits_welcome" class="auto internal xref">Section 6.3</a>)<a href="#section-6.2-4.3.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+</section>
+</div>
+<div id="commits_welcome">
+<section id="section-6.3">
+        <h3 id="name-updating-group-state">
+<a href="#section-6.3" class="section-number selfRef">6.3. </a><a href="#name-updating-group-state" class="section-name selfRef">Updating Group State</a>
+        </h3>
+<p id="section-6.3-1">Updating MLS group state requires <a href="#invariants" class="auto internal xref">Section 3.1</a> to be satisfied. This means
+that the changes have to be done linearly and changes to the group state
+<span class="bcp14">MUST</span> be performed by a single member within a MLS group for a given epoch.<a href="#section-6.3-1" class="pilcrow">¶</a></p>
+<p id="section-6.3-2">The process of updating the group state is described below:<a href="#section-6.3-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-6.3-3">
+<li id="section-6.3-3.1">
+            <p id="section-6.3-3.1.1">Acquire lock for the current epoch from the counter service.<a href="#section-6.3-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-6.3-4">2.a If the lock was successfully acquired and member is attempting to add
+a new member, process the MLS KeyPackage(s) available over per
+joiner's KeyPackage track, generate set of MLS Welcome
+messages per joiner and a single MLS Commit message for the group. Publish
+individual MLS Welcome messages to the intended recipeints
+on per recipient welcome track (see <a href="#process-welcome" class="auto internal xref">Section 6.3.1</a>) and Publish MLS Commit
+message to all the participants (see <a href="#process-commit" class="auto internal xref">Section 6.3.2</a>).<a href="#section-6.3-4" class="pilcrow">¶</a></p>
+<p id="section-6.3-5">2.b If the lock was successfully acquired and the operation is to remove a
+member, update the MLS state to remove the member, generate MLS Commit message
+and publish the generated MLS Commit message to all the participants (see <a href="#process-commit" class="auto internal xref">Section 6.3.2</a>).<a href="#section-6.3-5" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-6.3-6">
+<li id="section-6.3-6.1">
+            <p id="section-6.3-6.1.1">If the response was "Locked", following the procedures for retrying as
+defined in (locked).<a href="#section-6.3-6.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-6.3-6.2">
+            <p id="section-6.3-6.2.1">A lock response of "CounterError" implies the member attempting to
+update the MLS group state is behind and <span class="bcp14">MUST</span> await until it catches
+up with all the MLS Commit messages in transit. It is important to note,
+this situation <span class="bcp14">MAY</span> also imply that another member won the contention
+to update the group state before this member can make the change.<a href="#section-6.3-6.2.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<div id="process-welcome">
+<section id="section-6.3.1">
+          <h4 id="name-processing-mls-welcome-mess">
+<a href="#section-6.3.1" class="section-number selfRef">6.3.1. </a><a href="#name-processing-mls-welcome-mess" class="section-name selfRef">Processing MLS Welcome Message</a>
+          </h4>
+<p id="section-6.3.1-1">In order to be able to publish MLS Welcome message and process the
+same over MOQT, following track naming scheme is specified.<a href="#section-6.3.1-1" class="pilcrow">¶</a></p>
+<p id="section-6.3.1-2">The TrackNamespace, termed "Welcome Namespace" is divided into
+2 parts as shown below:<a href="#section-6.3.1-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6.3.1-3">
+<pre>
+Welcome Namespace := &lt;mls-group-name&gt; |  "welcome"
+</pre><a href="#section-6.3.1-3" class="pilcrow">¶</a>
+</div>
+<p id="section-6.3.1-4">Note: The MLS group name chosen should be unique within a MOQ relay network.<a href="#section-6.3.1-4" class="pilcrow">¶</a></p>
+<p id="section-6.3.1-5">MLS Welcome message is published over a track that is specific to individual
+recipient. Joining participants subscribe to the "Welcome Track" as part
+of MLS session bootstrapping, which has the following structure:<a href="#section-6.3.1-5" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6.3.1-6">
+<pre>
+Welcome Track
+Tracknamespace :=  Welcome Namespace
+Trackname      :=  RecipientId
+</pre><a href="#section-6.3.1-6" class="pilcrow">¶</a>
+</div>
+<p id="section-6.3.1-7">The RecipientId value chosen <span class="bcp14">MUST</span> be unique within the MOQ application. The
+<span class="bcp14">RECOMMENDED</span> way to ensure uniques would be to use certificate fingerprint
+of the recipients's public key. The group member publishing the MLS Welcome
+message can obtain the RecipientId while processing the KeyPackage of
+the member being added.<a href="#section-6.3.1-7" class="pilcrow">¶</a></p>
+<p id="section-6.3.1-8">On receipt of the Welcome message, local MLS state is updated with the
+received MLS Welcome message to obtain the group secret for the current
+epoch.<a href="#section-6.3.1-8" class="pilcrow">¶</a></p>
+<p id="section-6.3.1-9">When publishing on the "Welcome Track", there is  one MOQT group per MLS epoch
+and objectId 0 carries the MLS Welcome message.<a href="#section-6.3.1-9" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="process-commit">
+<section id="section-6.3.2">
+          <h4 id="name-processing-mls-commit-messa">
+<a href="#section-6.3.2" class="section-number selfRef">6.3.2. </a><a href="#name-processing-mls-commit-messa" class="section-name selfRef">Processing MLS Commit Messages</a>
+          </h4>
+<p id="section-6.3.2-1">All the members subscribe to receive MLS Commit message and they do so
+by subscribing to the "Commit Track" as shown:<a href="#section-6.3.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-6.3.2-2">
+<pre>
+Commit Track
+Tracknamespace :=  &lt;mls-group-name&gt;
+Trackname      :=  commits
+</pre><a href="#section-6.3.2-2" class="pilcrow">¶</a>
+</div>
+<p id="section-6.3.2-3">MLS Commit message updates the existing member about group changes, such
+as adds/removes and entropy updates. Publish to the "Commit Track"  happens
+with one MOQT group per MLS epoch and objectId 0 carries the MLS Commit message.<a href="#section-6.3.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="epoch-svc">
+<section id="section-7">
+      <h2 id="name-epoch-counter-service">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-epoch-counter-service" class="section-name selfRef">Epoch Counter Service</a>
+      </h2>
+<p id="section-7-1">A counter service tracks a collection of counters with unique identifiers.
+In an MLS context, the counter value is equal to the MLS epoch, and the
+counter identifier is the MLS group identifier/MLS group name.<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">Before a counter can be incremented, it must be locked.  As part of the lock
+operation, the caller states what their expected next counter value, which
+much match the service's expectation in order for the caller to acquire the
+lock.  Since the actual updates to the counter are out of band, this ensures
+that the caller has the correct current value before incrementing.<a href="#section-7-2" class="pilcrow">¶</a></p>
+<p id="section-7-3">There is no explicit initialization of counters.  The first call to <code>lock</code>
+for a counter must have <code>expected_next_value</code> set to 0.<a href="#section-7-3" class="pilcrow">¶</a></p>
+<p id="section-7-4">There is no method provided to clean up counters.  A service may clean up a
+counter if it has some out-of-band mechanism to find out that the counter is
+no longer needed.  For example, in an MLS context, once the MLS group is no
+longer in use, its counter can be discarded.<a href="#section-7-4" class="pilcrow">¶</a></p>
+<div id="counter-lock">
+<section id="section-7.1">
+        <h3 id="name-lock-api">
+<a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-lock-api" class="section-name selfRef">Lock API</a>
+        </h3>
+<p id="section-7.1-1">This is a simple REST style API over HTTPS used to request lock for
+a counter for a provided Counter ID.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-7.1-2">
+<pre>
+GET /lock/&lt;Counter ID&gt;?val=&lt;counter&gt;
+</pre><a href="#section-7.1-2" class="pilcrow">¶</a>
+</div>
+<p id="section-7.1-3">Returns "Ok" if lock acquisition succeeded, a "Confict" response when lock is
+already held with a retry_later time for retrying the lock acquisition or a
+"CounterError" with the current value of the counter when the requested counter
+doesn't match the <code>expected_next_value</code>.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="counter-incr">
+<section id="section-7.2">
+        <h3 id="name-increment-api">
+<a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-increment-api" class="section-name selfRef">Increment API</a>
+        </h3>
+<p id="section-7.2-1">The increment HTTPS API allows the counter value stored in <code>expected_next_value</code>
+to be incremented for the provided Counter ID.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-7.2-2">
+<pre>
+POST /increment/&lt;Counter ID&gt;
+</pre><a href="#section-7.2-2" class="pilcrow">¶</a>
+</div>
+<p id="section-7.2-3">Returns "Ok" if the counter value was successfully incremented, a "Error"
+responses if the provider "Counter ID" hasn't been locked yet.<a href="#section-7.2-3" class="pilcrow">¶</a></p>
+<p id="section-7.2-4">TODO: Define Error responses and codes for authorization failures.<a href="#section-7.2-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="interactions-with-moq-secure-objects">
+<section id="section-8">
+      <h2 id="name-interactions-with-moq-secur">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-interactions-with-moq-secur" class="section-name selfRef">Interactions with MOQ Secure Objects</a>
+      </h2>
+<p id="section-8-1">MLS Key agreement generates a group shared secret, called "MLS Mater Key",
+per MLS Epoch. Epochs in MLS are incremented whenever there is changed
+in the group state due to an existing member commit the changes to the group.<a href="#section-8-1" class="pilcrow">¶</a></p>
+<p id="section-8-2">MLS generated shared group secret per epoch can be used to derive
+<code>track_base_key</code> when using SecureObjects (see Section 5 ) for
+protecting the objects within a MOQT track.<a href="#section-8-2" class="pilcrow">¶</a></p>
+<p id="section-8-3">The procedure for the same is as defined below:<a href="#section-8-3" class="pilcrow">¶</a></p>
+<p id="section-8-4">For each combination of (MLS Epoch, MLS Master Key) an 'Epoch Secret'
+is derived:<a href="#section-8-4" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-8-5">
+<pre>
+Epoch Secret = HKDF.Extract("SecureObject Epoch Master Key " | MLS Epoch, MLS Master Key)
+</pre><a href="#section-8-5" class="pilcrow">¶</a>
+</div>
+<p id="section-8-6">'Epoch Secret' is used to derive <code>track_base_key</code> per <code>FullTrackName</code>
+(see Section 3 of <span>[<a href="#SecureObjects" class="cite xref">SecureObjects</a>]</span>):<a href="#section-8-6" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-8-7">
+<pre>
+track_base_key = HKDF.Expand("SecureObject Track Base Key " | FullTrackName, Epoch Secret)
+</pre><a href="#section-8-7" class="pilcrow">¶</a>
+</div>
+<p id="section-8-8">When encrypting/decrypting objects using SecureObject, the epoch under which the
+<code>track_base_key</code> was computed is used as <code>KID</code> in the SecureObject Header. The
+<code>track_base_key</code> computed is used to derive per object keys and nonce as defined in
+Section 5 of <span>[<a href="#SecureObjects" class="cite xref">SecureObjects</a>]</span>. All the objects within a given epoch are encrypted/decrypted with the keys derived from the <code>Epoch Secret</code> for that epoch.<a href="#section-8-8" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="security-considerations">
+<section id="section-9">
+      <h2 id="name-security-considerations">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<p id="section-9-1">TODO Security<a href="#section-9-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="iana-considerations">
+<section id="section-10">
+      <h2 id="name-iana-considerations">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-10-1">This document has no IANA actions.<a href="#section-10-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-normative-references">
+<section id="section-11">
+      <h2 id="name-normative-references">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+      </h2>
+<dl class="references">
+<dt id="MoQTransport">[MoQTransport]</dt>
+      <dd>
+<span class="refAuthor">Curley, L.</span>, <span class="refAuthor">Pugin, K.</span>, <span class="refAuthor">Nandakumar, S.</span>, <span class="refAuthor">Vasiliev, V.</span>, and <span class="refAuthor">I. Swett</span>, <span class="refTitle">"Media over QUIC Transport"</span>, <span class="refContent">Work in Progress</span>, <span class="seriesInfo">Internet-Draft, draft-ietf-moq-transport-03</span>, <time datetime="2024-03-04" class="refDate">4 March 2024</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/html/draft-ietf-moq-transport-03">https://datatracker.ietf.org/doc/html/draft-ietf-moq-transport-03</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+      <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+      <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC9420">[RFC9420]</dt>
+      <dd>
+<span class="refAuthor">Barnes, R.</span>, <span class="refAuthor">Beurdouche, B.</span>, <span class="refAuthor">Robert, R.</span>, <span class="refAuthor">Millican, J.</span>, <span class="refAuthor">Omara, E.</span>, and <span class="refAuthor">K. Cohn-Gordon</span>, <span class="refTitle">"The Messaging Layer Security (MLS) Protocol"</span>, <span class="seriesInfo">RFC 9420</span>, <span class="seriesInfo">DOI 10.17487/RFC9420</span>, <time datetime="2023-07" class="refDate">July 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9420">https://www.rfc-editor.org/rfc/rfc9420</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="SecureObjects">[SecureObjects]</dt>
+    <dd>
+<span class="refTitle">"Secure Objects for Media over QUIC"</span>, <span>n.d.</span>, <span>&lt;<a href="https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-moq-secure-objects.html">https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-moq-secure-objects.html</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-A">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-A-1">TODO acknowledge.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-B">
+      <h2 id="name-authors-addresses">
+<a href="#name-authors-addresses" class="section-name selfRef">Authors' Addresses</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Cullen Jennings</span></div>
+<div dir="auto" class="left"><span class="org">Cisco</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:fluffy@cisco.com" class="email">fluffy@cisco.com</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Richard L. Barnes</span></div>
+<div dir="auto" class="left"><span class="org">Cisco</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:rlb@ipv.sx" class="email">rlb@ipv.sx</a>
+</div>
+</address>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">Suhas Nandakumar</span></div>
+<div dir="auto" class="left"><span class="org">Cisco</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:snandaku@cisco.com" class="email">snandaku@cisco.com</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>
