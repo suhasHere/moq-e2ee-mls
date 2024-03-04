@@ -642,21 +642,32 @@ longer in use, its counter can be discarded.
 
 ## Lock API {#counter-lock}
 
-This is a simple REST style API over HTTPS.
+This is a simple REST style API over HTTPS used to request lock for 
+a counter for a provided Counter ID.
 
 ~~~~
-GET /lock/<MLS Group ID>?val=<counter>
+GET /lock/<Couner ID>?val=<counter>
 ~~~~
 
-Returns "Ok" if lock acquistion succeded, a "Confict" response with lock is already 
-held with retry_later time value or "CounterError" with  current value of 
-the counter when the requested counter doesn't match the expected value.
+Returns "Ok" if lock acquistion succeded, a "Confict" response when lock is 
+already held with a retry_later time for retrying the lock acquistion or a 
+"CounterError" with the current value of the counter when the requested counter 
+doesn't match the `expected_next_value`.
 
 ## Increment API {#counter-incr}
 
+The increment HTTPS API allows the counter value stored in `expected_next_value` 
+to be incremented for the provided Counter ID.
+
 ~~~~
-POST /increment/<MLS Group ID>
+POST /increment/<Counter ID>
 ~~~~
+
+Returns "Ok" if the counter value was successfully incremented, a "Error"
+responses if the provider "Counter ID" hasn't been locked yet.
+
+TODO: Define Error responses and codes for authorization failures.
+
 
 # Interactions with MOQ Secure Objects
 
