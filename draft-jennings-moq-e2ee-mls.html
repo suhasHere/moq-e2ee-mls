@@ -1938,14 +1938,17 @@ longer in use, its counter can be discarded.<a href="#section-7-4" class="pilcro
         <h3 id="name-lock-api">
 <a href="#section-7.1" class="section-number selfRef">7.1. </a><a href="#name-lock-api" class="section-name selfRef">Lock API</a>
         </h3>
-<p id="section-7.1-1">This is a simpple REST style API over HTTPS.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
+<p id="section-7.1-1">This is a simple REST style API over HTTPS used to request lock for
+a counter for a provided Counter ID.<a href="#section-7.1-1" class="pilcrow">¶</a></p>
 <div class="alignLeft art-text artwork" id="section-7.1-2">
 <pre>
-GET /lock/&lt;MLS Group ID&gt;?val=&lt;counter&gt;
+GET /lock/&lt;Couner ID&gt;?val=&lt;counter&gt;
 </pre><a href="#section-7.1-2" class="pilcrow">¶</a>
 </div>
-<p id="section-7.1-3">Returns body with "LOCKED" for scuesss, and current value if the counter
-for counter error.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
+<p id="section-7.1-3">Returns "Ok" if lock acquistion succeded, a "Confict" response when lock is
+already held with a retry_later time for retrying the lock acquistion or a
+"CounterError" with the current value of the counter when the requested counter
+doesn't match the <code>expected_next_value</code>.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="counter-incr">
@@ -1953,11 +1956,16 @@ for counter error.<a href="#section-7.1-3" class="pilcrow">¶</a></p>
         <h3 id="name-increment-api">
 <a href="#section-7.2" class="section-number selfRef">7.2. </a><a href="#name-increment-api" class="section-name selfRef">Increment API</a>
         </h3>
-<div class="alignLeft art-text artwork" id="section-7.2-1">
+<p id="section-7.2-1">The increment HTTPS API allows the counter value stored in <code>expected_next_value</code>
+to be incremented for the provided Counter ID.<a href="#section-7.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-7.2-2">
 <pre>
-POST /increment/&lt;MLS Group ID&gt;
-</pre><a href="#section-7.2-1" class="pilcrow">¶</a>
+POST /increment/&lt;Counter ID&gt;
+</pre><a href="#section-7.2-2" class="pilcrow">¶</a>
 </div>
+<p id="section-7.2-3">Returns "Ok" if the counter value was successfully incremented, a "Error"
+responses if the provider "Counter ID" hasn't been locked yet.<a href="#section-7.2-3" class="pilcrow">¶</a></p>
+<p id="section-7.2-4">TODO: Define Error responses and codes for authorization failures.<a href="#section-7.2-4" class="pilcrow">¶</a></p>
 </section>
 </div>
 </section>
@@ -1967,8 +1975,9 @@ POST /increment/&lt;MLS Group ID&gt;
       <h2 id="name-interactions-with-moq-secur">
 <a href="#section-8" class="section-number selfRef">8. </a><a href="#name-interactions-with-moq-secur" class="section-name selfRef">Interactions with MOQ Secure Objects</a>
       </h2>
-<p id="section-8-1">TODO - explain how the shared secret for each epock can be used as the
-base key for and epock can be used as the key idetifier ( KID).<a href="#section-8-1" class="pilcrow">¶</a></p>
+<p id="section-8-1">TODO - explain how the shared secret for each epoch can be used to
+derive <code>track_base_key</code> for each MOQT track  and use epoch as  key idetifier
+(KID) in the SecureObject Header.<a href="#section-8-1" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-considerations">

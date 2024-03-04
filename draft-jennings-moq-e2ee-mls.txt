@@ -671,21 +671,34 @@ Table of Contents
 
 7.1.  Lock API
 
-   This is a simpple REST style API over HTTPS.
+   This is a simple REST style API over HTTPS used to request lock for a
+   counter for a provided Counter ID.
 
-   GET /lock/<MLS Group ID>?val=<counter>
+   GET /lock/<Couner ID>?val=<counter>
 
-   Returns body with "LOCKED" for scuesss, and current value if the
-   counter for counter error.
+   Returns "Ok" if lock acquistion succeded, a "Confict" response when
+   lock is already held with a retry_later time for retrying the lock
+   acquistion or a "CounterError" with the current value of the counter
+   when the requested counter doesn't match the expected_next_value.
 
 7.2.  Increment API
 
-   POST /increment/<MLS Group ID>
+   The increment HTTPS API allows the counter value stored in
+   expected_next_value to be incremented for the provided Counter ID.
+
+   POST /increment/<Counter ID>
+
+   Returns "Ok" if the counter value was successfully incremented, a
+   "Error" responses if the provider "Counter ID" hasn't been locked
+   yet.
+
+   TODO: Define Error responses and codes for authorization failures.
 
 8.  Interactions with MOQ Secure Objects
 
-   TODO - explain how the shared secret for each epock can be used as
-   the base key for and epock can be used as the key idetifier ( KID).
+   TODO - explain how the shared secret for each epoch can be used to
+   derive track_base_key for each MOQT track and use epoch as key
+   idetifier (KID) in the SecureObject Header.
 
 9.  Security Considerations
 
