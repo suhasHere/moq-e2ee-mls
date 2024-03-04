@@ -81,7 +81,7 @@ secure E2EE key establishment protocol using MLS over MOQT.
 
 More specifically, this document provides
 
-- Design for using MOQT data model to carryout MLSD protocol exchange
+- Design for using MOQT data model to carryout MLS protocol exchange
 - Simple counter service interface enabling synchronization of MLS protocol
   messages.
 - Procedure to derive keys for MOQT object protection when using {{SecureObjects}}.
@@ -128,27 +128,21 @@ provides several important security properties
 At a very high level, MLS protocol operates by participants sending
 proposals to add/remove/update the group state and an active member of
 the group commit the proposals to move the group’s cryptographic state
-from one epoch to the next.
+from one epoch to the next (see section 3.2 of {{!9240}}).
 
 In order to setup end to end encryption of media delivered over MOQT
-delivery network, producders and consumers participate in the MLS
+delivery network, producers and consumers participate in the MLS
 exchange to setup group secret through which are used to derived the
 keys needed for encrypting the media/data published by the members of
 the MLS group.
 
-Below figure captures a typical setup for clients to participate in the
-MLS protocol, with Delivery Service (DS) acting as the rendezvous
-point. In the example setting, participants A, B and C involve in
-protocol exchange to setup end to end encrypted session keyed via MLS.
-
-
 
 ## Critical Invariants {#invariants}
 
-* MLS requires a linear sequence of MLS Commits in that each MLS Commit
-  has exactly one successor. This is achieved by using a centralized
-  server that hands out a token to the client that is allowed to make
-  the next commit.
+MLS requires a linear sequence of MLS Commits in that each MLS Commit
+has exactly one successor. This is achieved by using a centralized
+server that hands out a token to the client that is allowed to make
+the next commit.
 
 
 # MOQ Overview {#moqt-model}
