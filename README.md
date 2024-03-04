@@ -1,17 +1,17 @@
-# Secure Objects
+# MOQ and MLS 
 
-This is the working area for the individual Internet-Draft, "MoQ Secure Objects", a light weight symmetric encryption scheme for securing MoQ objects.
+This is the working area for the individual Internet-Draft, "MoQ and MLS".
 
 
-* [Editor's Copy](https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-moq-secure-objects.html)
-* [Datatracker Page](https://datatracker.ietf.org/doc/draft-fluffy-moq-secure-objects)
-* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-jennings-moq-secure-objects)
-* [Compare Editor's Copy to Individual Draft](https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-moq-secure-objects.diff)
+* [Editor's Copy](https://suhashere.github.io/moq-e2ee-mls/#go.draft-jennings-moq-e2ee-mls.html)
+* [Datatracker Page](https://datatracker.ietf.org/doc/draft-jennings-moq-e2ee-mls)
+* [Individual Draft](https://datatracker.ietf.org/doc/html/draft-jennings-moq-e2ee-mls)
+* [Compare Editor's Copy to Individual Draft](https://suhashere.github.io/moq-e2ee-mls/#go.draft-jennings-moq-e2ee-mls.diff)
 
 ## Contributing
 
 See the
-[guidelines for contributions](https://github.com/suhasHere/moq-secure-objects/blob/main/CONTRIBUTING.md).
+[guidelines for contributions](https://github.com/suhasHere/moq-e2ee-mls/blob/main/CONTRIBUTING.md).
 
 Contributions can be made by creating pull requests.
 The GitHub interface supports creating pull requests using the Edit (✏) button.
