@@ -128,7 +128,7 @@ provides several important security properties
 At a very high level, MLS protocol operates by participants sending
 proposals to add/remove/update the group state and an active member of
 the group commit the proposals to move the group’s cryptographic state
-from one epoch to the next (see section 3.2 of {{!9240}}).
+from one epoch to the next (see section 3.2 of {{!RFC9420}}).
 
 In order to setup end to end encryption of media delivered over MOQT
 delivery network, producers and consumers participate in the MLS
