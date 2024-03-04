@@ -64,6 +64,8 @@ TODO Introduction
 
 {::boilerplate bcp14-tagged}
 
+The "|" operator is is used to indicate concatination of two strings or
+bytes arrays.
 
 # MLS Overview
 
@@ -107,8 +109,10 @@ protocol exchange to setup end to end encrypted session keyed via MLS.
 
 ## Critical Invariants {#invariants}
 
-* Only one group is created per moq session
-* Linear sequence of Commits - Each Commit has exactly one successor
+* MLS requires a linear sequence of MLS Commits in that each MLS Commit
+  has exactly one successor. This is achieved by using a centralized
+  server that hands out a token to the client that is allowed to make
+  the next commit.
 
 
 # MOQ Overview {#moqt-model}
@@ -214,10 +218,10 @@ which is eventually forwarded to Bob via the Relay.
       │      SubscribeOk(id=2)      │                          │
       │────────────────────────────>│                          │
       │                             │                          │
-      │         Media Flow          │                          │
+      │        Object Flow          │                          │
       │────────────────────────────>│                          │
       │                             │                          │
-      │                             │        Media Flow        │
+      │                             │       Object Flow        │
       │                             │─────────────────────────>│
       │                             │                          │
       │                             │    Unsubscribe(id=1)     │
@@ -235,6 +239,7 @@ which is eventually forwarded to Bob via the Relay.
 
 In order to realize the MLS key exchange over MOQ, this specification
 proposes MOQT endpoints and Relays to be able to subscribe to TrackNamespace.
+A sketch of the proposal is here but this would be moved out of this draft.
 
 Following additions is proposed to the core MOQT protocol.
 
@@ -306,10 +311,11 @@ range of use-cases.
 MLS {{!RFC9420}} achieves group key agreement by participants/members
 engaging in MLS protocol message exchange that allows:
 
- - New members to express their interest to join a  MLS group
- - Exsiting members to commit a new members to a MLS group
- - Existing members to commit removal of existing members from a MLS group
+- New members to express their interest to join a  MLS group
 
+- Exsiting members to commit a new members to a MLS group
+
+- Existing members to commit removal of existing members from a MLS group
 
 The central unit of functionality in MLS is a group, where at any given time,
 a group represents a secret known only to its members. Membership to the group
@@ -327,13 +333,12 @@ with the group, thus enabling an existing member to add new members to the
 MLS group. In this context, KeyPackages distribution/processing can be modeled
 a "queue of KeyPackages". Such a queue provides following properties:
 
-- Multiple parties to write to it, when participants submit theur KeyPackages.
+- Multiple parties to write to it, when participants submit their KeyPackages.
 
 - Mulitple parties to read/process from the queue, to process the KeyPackage for
   updating the MLS group state.
 
 ~~~~
-
                        +---------------------------+   +--->
   Multiple    ---+     |                           |   |   Multiple
  Simultenous     +---> |    MLS Keypackage Queue   | --+ Simulatenous
@@ -345,30 +350,27 @@ a "queue of KeyPackages". Such a queue provides following properties:
 ### Welcoming New Member
 
 Once a MLS KeyPackage is verified, an existing member can add a new member to the
-MLS group following procedures in (see todo) and send MLS Welcome message
+MLS group following procedures in (see TODO) and send MLS Welcome message
 to invite the new member to join the group. This procedure can be abstracted
-via a message queue for MLS Welcome messages with the following properties:
+via a message queues for each joiner to receive MLS Welcome messages with the following properties:
 
-  - To be able to accessible by multiple parties to write, but constrained so
-    that only one party (existing member) is allowed to write for a given epoch.
+- To be able to accessible by multiple parties to write, but constrained so
+  that only one party is allowed to write for a given epoch.
 
-  - One party, the recipient of the welcome, is be able to read the MLS Welcome
-   message in a given epoch.
+- One party, the recipient of the welcome, is be able to read the MLS Welcome
+  message.
 
 ~~~~
-
                        +--------------------------+   +--->
               ---+     |                          |   |
- 1 writer per    +---> |   MLS Welcome Queue      | --+   Single
-    epoch        +---> |                          | --+   Reader per
+ 1 writer per    +---> |   MLS Welcome Queues     | --+   Single
+    epoch        +---> |   (1 queue per joiner)   | --+   Reader per
               ---+     +--------------------------+   |    epoch
                                                       +--->
-
-
 ~~~~
 
 
-### Updating Group State
+### Updating MLS Group State
 
 Members can update group's state when adding a new member, removing an
 existing member or updating group's entropy at any time during a MLS
@@ -380,11 +382,11 @@ epoch.
 The distribution of commit messages can be modeled with a message queue
 for MLS Commit messages with the following properties:
 
-  - Any member can access the commit queue for writing MLS Commit messages,
-   but only one member is allowed to write per epoch.
+- Any member can access the commit queue for writing MLS Commit messages,
+  but only one member is allowed to write per epoch.
 
-  - All the members can read and process MLS Commit message from the commit
-    queue every epoch to update their group state.
+- All the members can read and process MLS Commit message from the commit
+  queue to update their group state.
 
 ~~~~
               ---+     +--------------------------+  +--->
@@ -640,35 +642,25 @@ longer in use, its counter can be discarded.
 
 ## Lock API {#counter-lock}
 
-~~~~
-GET /lock
-Content-type: application/octet-stream
+This is a simpple REST style API over HTTPS.
 
-Body
-MLS GroupId
-MLS Epoch
-
-Response
-OK or Locked or CounterError
 ~~~~
+GET /lock/<MLS Group ID>?val=<counter>
+~~~~
+
+Returns body with "LOCKED" for scuesss, and current value if the counter
+for counter error.
 
 ## Increment API {#counter-incr}
 
 ~~~~
-GET /increment
-Content-type: application/octet-stream
-
-Body
-LockId
-
-
-Response
-OK or UnknonwErrpr
+POST /increment/<MLS Group ID>
 ~~~~
 
 # Interactions with MOQ Secure Objects
 
-TODO
+TODO - explain how the shared secret for each epock can be used as the
+base key for and epock can be used as the key idetifier ( KID).
 
 # Security Considerations
 
