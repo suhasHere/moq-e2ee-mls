@@ -620,11 +620,51 @@ with one MOQT group per MLS epoch and objectId 0 carries the MLS Commit message.
 
 # Epoch Counter Service {#epoch-svc}
 
-TODO
+A counter service tracks a collection of counters with unique identifiers.
+In an MLS context, the counter value is equal to the MLS epoch, and the
+counter identifier is the MLS group identifier.
 
-## Create/Join Group API {#epoch-svc-create}
+Before a counter can be incremented, it must be locked.  As part of the lock
+operation, the caller states what their expected next counter value, which
+much match the service's expectation in order for the caller to acquire the
+lock.  Since the actual updates to the counter are out of band, this ensures
+that the caller has the correct current value before incrementing.
 
-## Commit API {#epoch-svc-commit}
+There is no explicit initialization of counters.  The first call to `lock`
+for a counter must have `expected_next_value` set to 0.
+
+There is no method provided to clean up counters.  A service may clean up a
+counter if it has some out-of-band mechanism to find out that the counter is
+no longer needed.  For example, in an MLS context, once the MLS group is no
+longer in use, its counter can be discarded.
+
+## Lock API {#counter-lock}
+
+~~~~
+GET /lock
+Content-type: application/octet-stream
+
+Body
+MLS GroupId
+MLS Epoch
+
+Response
+OK or Locked or CounterError
+~~~~
+
+## Increment API {#counter-incr}
+
+~~~~
+GET /increment
+Content-type: application/octet-stream
+
+Body
+LockId
+
+
+Response
+OK or UnknonwErrpr
+~~~~
 
 # Interactions with MOQ Secure Objects
 
