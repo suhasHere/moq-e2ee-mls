@@ -14,11 +14,11 @@ Expires: 5 September 2024                                          Cisco
 
 Abstract
 
-   This specification defines secure end to end group key agreement
-   using Message Layer Security (MLS) for endpoints in Media over QUIC
-   (MOQ) applications.  It provides a design for sending MLS messages
-   over MOQ and also further defines a interface for simple counter
-   service for synchroniation of MLS messages.
+   This specification defines a mechanism to use Message Layer Security
+   (MLS) to provide end-to-end group key agreement for Media over QUIC
+   (MOQ) applications.  Almost all communications are done via the MOQ
+   transport.  MLS requires a small degree of synchronization, which is
+   provided by a simple counter service.
 
 About This Document
 
@@ -82,7 +82,7 @@ Table of Contents
        4.2.3.  NAMESPACE_INFO
    5.  MLS and MOQ
      5.1.  High-level Design
-       5.1.1.  Keypackage Distribution
+       5.1.1.  KeyPackage Distribution
        5.1.2.  Welcoming New Member
        5.1.3.  Updating MLS Group State
    6.  MLS Group Key Exchange over MOQT
@@ -123,22 +123,14 @@ Table of Contents
 
    More specifically, this document provides
 
-   *  Design for using MOQT data model to carryout MLS protocol exchange
+   *  Design for using MOQT data model to carrying out MLS protocol
+      exchange
 
    *  Simple counter service interface enabling synchronization of MLS
       protocol messages.
 
-   *  Procedure to derive keys for MOQT object protection when using
+   *  Procedures to derive keys for MOQT object protection when using
       [SecureObjects].
-
-   The document further enables following 2 goals:
-
-   1.  Use MOQT as delivery transport for MLS protocol meesages.
-
-   2.  Allow MOTQ endpoints (producers/consumers) to use MLS as secure
-       key exchange protocol for efficient and scalable end to end
-       secure group communications across range of use-cases, such as
-       conference calls, live streaming and so on.
 
 2.  Conventions and Definitions
 
@@ -148,7 +140,7 @@ Table of Contents
    BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
 
-   The "|" operator is is used to indicate concatination of two strings
+   The "|" operator is is used to indicate concatenation of two strings
    or bytes arrays.
 
 3.  MLS Overview
@@ -180,7 +172,7 @@ Table of Contents
 
    In order to setup end to end encryption of media delivered over MOQT
    delivery network, producers and consumers participate in the MLS
-   exchange to setup group secret through which are used to derived the
+   exchange to setup group secret through which are used to derive the
    keys needed for encrypting the media/data published by the members of
    the MLS group.
 
@@ -266,7 +258,7 @@ Table of Contents
    FullTrackName (identified by its TrackNamespace and TrackName)
    expressing his interest to receive media.  Relay makes downstream
    subscription to Alice since the track namespace in the subscription
-   matches the track namespace in the annoncement from Alice.  This is
+   matches the track namespace in the announcement from Alice.  This is
    followed by Alice publishing media over the requested track, which is
    eventually forwarded to Bob via the Relay.
 
@@ -331,7 +323,7 @@ Table of Contents
 4.2.2.  SUBSCRIBE_NAMESPACE_RESPONSE
 
    Publishers sends SUBSCRIBE_NAMESPACE_RESPONSE indicating the status
-   of request for subscribing to the track namespace.
+   of the request for subscribing to the track namespace.
 
    SUBSCRIBE_NAMESPACE_RESPONSE
    {
@@ -343,12 +335,12 @@ Table of Contents
 4.2.3.  NAMESPACE_INFO
 
    Publisher sends NAMESPACE_INFO message whenever it is ready to
-   publish on new track under a track namespace requested in
-   Section 4.2.1 message.  The NAMESPACE_INFO message is a implicit
-   subscription, unless it is explicitly unsubscribed by the subscriber
-   by sending UNSUBSCRIBE message.  This message provides necessary
-   mapping between Track Alias, Subscribe Id to the namespace requested
-   in the SUBSCRIBE NAMESPACE message.
+   publish on new track under a track namespace Section 4.2.1 message.
+   The NAMESPACE_INFO message is a implicit subscription to the track,
+   unless it is explicitly unsubscribed by the subscriber by sending
+   UNSUBSCRIBE message.  This message provides necessary mapping between
+   Track Alias, Subscribe Id to the namespace requested in the SUBSCRIBE
+   NAMESPACE message.
 
    NAMESPACE_INFO
    {
@@ -359,17 +351,20 @@ Table of Contents
      Mapped Request Id (i)
    }
 
+   Section 6.1 provides one of the applications of namespace
+   subscription for MLS KeyPackage distribution.
+
 5.  MLS and MOQ
 
    This specification defines procedures for participants engaging in
    MLS key exchange to happen over MOQT protocol, thus enabling
    following 2 goals:
 
-   1.  Use MOQT as delivery transport for MLS protocol meesages.
+   1.  Use MOQT as delivery transport for MLS protocol messages.
 
-   2.  Allow MOTQ endpoints (producers/consumers) to use MLS as secure
-       key exchange protocol for end to end secure commnunications
-       across range of use-cases.
+   2.  Allow MOQT endpoints (producers/consumers) to use MLS as secure
+       key exchange protocol for end to end secure communications across
+       range of use-cases.
 
 5.1.  High-level Design
 
@@ -378,7 +373,7 @@ Table of Contents
 
    *  New members to express their interest to join a MLS group
 
-   *  Exsiting members to commit a new members to a MLS group
+   *  Existing members to commit a new members to a MLS group
 
    *  Existing members to commit removal of existing members from a MLS
       group
@@ -393,7 +388,7 @@ Table of Contents
    At a high level, one can envision MLS protocol operation in the form
    multiple queue abstractions to achieve the above functionality.
 
-5.1.1.  Keypackage Distribution
+5.1.1.  KeyPackage Distribution
 
    All participants interested in joining a MLS group share their MLS
    KeyPackage(s) with the group, thus enabling an existing member to add
@@ -404,35 +399,34 @@ Table of Contents
    *  Multiple parties to write to it, when participants submit their
       KeyPackages.
 
-   *  Mulitple parties to read/process from the queue, to process the
+   *  Multiple parties to read/process from the queue, to process the
       KeyPackage for updating the MLS group state.
 
                           +---------------------------+   +--->
      Multiple    ---+     |                           |   |   Multiple
-    Simultenous     +---> |    MLS Keypackage Queue   | --+ Simulatenous
+    Simultaneous    +---> |    MLS KeyPackage Queue   | --+ Simultaneous
       Writers       +---> |                           |   |   Readers
                  ---+     +---------------------------+   +--->
 
 5.1.2.  Welcoming New Member
 
    Once a MLS KeyPackage is verified, an existing member can add a new
-   member to the MLS group following procedures in (see TODO) and send
-   MLS Welcome message to invite the new member to join the group.  This
-   procedure can be abstracted via a message queues for each joiner to
-   receive MLS Welcome messages with the following properties:
+   member to the MLS group and send MLS Welcome message to invite the
+   new member to join the group.  This procedure can be abstracted via
+   message queues for each joiner to receive MLS Welcome messages with
+   the following properties:
 
-   *  To be able to accessible by multiple parties to write, but
-      constrained so that only one party is allowed to write for a given
-      epoch.
+   *  Accessible by multiple parties to write, but constrained so that
+      only one party is allowed to write for a given epoch.
 
-   *  One party, the recipient of the welcome, is be able to read the
-      MLS Welcome message.
+   *  One party, the recipient of the welcome message, is be able to
+      read the MLS Welcome message.
 
                           +--------------------------+   +--->
                  ---+     |                          |   |
     1 writer per    +---> |   MLS Welcome Queues     | --+   Single
-       epoch        +---> |   (1 queue per joiner)   | --+   Reader per
-                 ---+     +--------------------------+   |    epoch
+       epoch        +---> |   (1 queue per joiner)   | --+   Reader
+                 ---+     +--------------------------+   |
                                                          +--->
 
 5.1.3.  Updating MLS Group State
@@ -455,7 +449,7 @@ Table of Contents
 
                  ---+     +--------------------------+  +--->
     1 writer per     +--->|                          |--+   Multiple
-       epoch         +--->|   MLS Commit Queue       |--+ Simulatenous
+       epoch         +--->|   MLS Commit Queue       |--+ Simultaneous
                  ---+     |                          |  |    Readers
                           +--------------------------+  +--->
 
@@ -464,7 +458,7 @@ Table of Contents
    Section Section 5.1 provided an non-normative abstracted view (via
    Queue metaphor) to illustrate various MLS operations.  Subsections
    below provide further normative details on realizing those
-   abstractions via concepts from the MOQT data model Section 4
+   abstractions via concepts from the MOQT data model (see Section 4).
 
 6.1.  Bootstrapping MLS Session
 
@@ -473,14 +467,14 @@ Table of Contents
    Session, participating MOQT endpoints needs to perform the following
    2 actions:
 
-   1.  Subscribe to receive published MLS Keypackages over MOQT Track
+   1.  Subscribe to receive published MLS KeyPackages over MOQT Track
        for an MLS group.
 
    2.  Publishing MLS KeyPackages over a MOQT Track.
 
    To enable the above, following MOQT track definition is specified:
 
-   The TrackNamespace, termed "KeyPackage Namespace" is divided into 2
+   The TrackNamespace, termed "KeyPackage Namespace" is made up of 2
    parts as shown below:
 
    KeyPackage Namespace := <mls-group-name> |  "keypackages"
@@ -565,7 +559,7 @@ Table of Contents
 
    Creating or Joining an MLS group requires a way for boostrapping the
    group when the first member joins and a way to decide an existing
-   member who process the MLS KeyPackage to add the new member.
+   member for processing the MLS KeyPackage to add the new member.
 
    In order to realize the above functionalities and ensure the
    criticial invariants Section 3.1, a centralized "Epoch Counter
@@ -578,17 +572,16 @@ Table of Contents
    identified by its GroupId and epoch '0' as the counter to obtain the
    lock.  The response can be one of the following:
 
-   *  Ok: A response of OK (see resp-ok) implies that there doesn't
-      exist an MLS Group.  In this scenario, the participant is the
-      first participant and thus creates the group unilaterally and
-      generates the initial secret for the group.  Following which the
-      participant releases the acquired lock by performing the increment
-      operation (see increment) for the obtained lock/counter, on the
-      counter service.
+   *  Ok: A response of OK implies that there doesn't exist an MLS
+      Group.  In this scenario, the participant is the first participant
+      and thus creates the group unilaterally and generates the initial
+      secret for the group.  Following which the participant releases
+      the acquired lock by performing the increment operation for the
+      obtained lock, on the counter service.
 
-   *  Locked: A response of "Locked" (see resp-locked) implies a
-      conflicting request and the requestor has to retry acquiring the
-      lock, after the lock expiry timeout provided in the response.
+   *  Locked: A response of "Locked" implies a conflicting request and
+      the requestor has to retry acquiring the lock, after the lock
+      expiry timeout provided in the response.
 
    *  CounterError: A response of CounterError implies that the service
       has a different value of the current counter than the one
@@ -599,10 +592,10 @@ Table of Contents
 
 6.3.  Updating Group State
 
-   Updating MLS group state required Section 3.1 to be satifisfied.
+   Updating MLS group state requires Section 3.1 to be satifisfied.
    This means that the changes have to be done linearly and changes to
-   the group state MUST be performed by a single memeber within a MLS
-   group.
+   the group state MUST be performed by a single member within a MLS
+   group for a given epoch.
 
    The process of updating the group state is described below:
 
@@ -624,7 +617,7 @@ Table of Contents
    1.  If the response was "Locked", following the procedures for
        retrying as defined in (locked).
 
-   2.  A lock response is "CounterError" implies the member attempting
+   2.  A lock response of "CounterError" implies the member attempting
        to update the MLS group state is behind and MUST await until it
        catches up with all the MLS Commit messages in transit.  It is
        important to note, this situation MAY also imply that another
@@ -663,8 +656,8 @@ Table of Contents
    the received MLS Welcome message to obtain the group secret for the
    current epoch.
 
-   When publishing on the "Welcome Track", there one MOQT group per MLS
-   epoch and objectId 0 carries the MLS Welcome message.
+   When publishing on the "Welcome Track", there is one MOQT group per
+   MLS epoch and objectId 0 carries the MLS Welcome message.
 
 6.3.2.  Processing the MLS Commit Messages
 
