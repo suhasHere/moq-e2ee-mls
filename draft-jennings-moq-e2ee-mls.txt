@@ -80,7 +80,7 @@ Table of Contents
      5.1.  High-level Design
        5.1.1.  Keypackage Distribution
        5.1.2.  Welcoming New Member
-       5.1.3.  Updating Group State
+       5.1.3.  Updating MLS Group State
    6.  MLS Group Key Exchange over MOQT
      6.1.  Bootstrapping MLS Session
      6.2.  Creating/Joining a MLS Group
@@ -108,6 +108,9 @@ Table of Contents
    "OPTIONAL" in this document are to be interpreted as described in
    BCP 14 [RFC2119] [RFC8174] when, and only when, they appear in all
    capitals, as shown here.
+
+   The "|" operator is is used to indicate concatination of two strings
+   or bytes arrays.
 
 3.  MLS Overview
 
@@ -150,9 +153,10 @@ Table of Contents
 
 3.1.  Critical Invariants
 
-   *  Only one group is created per moq session
-
-   *  Linear sequence of Commits - Each Commit has exactly one successor
+   *  MLS requires a linear sequence of MLS Commits in that each MLS
+      Commit has exactly one successor.  This is achieved by using a
+      centralized server that hands out a token to the client that is
+      allowed to make the next commit.
 
 4.  MOQ Overview
 
@@ -255,10 +259,10 @@ Table of Contents
          │      SubscribeOk(id=2)      │                          │
          │────────────────────────────>│                          │
          │                             │                          │
-         │         Media Flow          │                          │
+         │        Object Flow          │                          │
          │────────────────────────────>│                          │
          │                             │                          │
-         │                             │        Media Flow        │
+         │                             │       Object Flow        │
          │                             │─────────────────────────>│
          │                             │                          │
          │                             │    Unsubscribe(id=1)     │
@@ -274,7 +278,8 @@ Table of Contents
 
    In order to realize the MLS key exchange over MOQ, this specification
    proposes MOQT endpoints and Relays to be able to subscribe to
-   TrackNamespace.
+   TrackNamespace.  A sketch of the proposal is here but this would be
+   moved out of this draft.
 
    Following additions is proposed to the core MOQT protocol.
 
@@ -363,7 +368,7 @@ Table of Contents
    distribution/processing can be modeled a "queue of KeyPackages".
    Such a queue provides following properties:
 
-   *  Multiple parties to write to it, when participants submit theur
+   *  Multiple parties to write to it, when participants submit their
       KeyPackages.
 
    *  Mulitple parties to read/process from the queue, to process the
@@ -378,26 +383,26 @@ Table of Contents
 5.1.2.  Welcoming New Member
 
    Once a MLS KeyPackage is verified, an existing member can add a new
-   member to the MLS group following procedures in (see todo) and send
+   member to the MLS group following procedures in (see TODO) and send
    MLS Welcome message to invite the new member to join the group.  This
-   procedure can be abstracted via a message queue for MLS Welcome
-   messages with the following properties:
+   procedure can be abstracted via a message queues for each joiner to
+   receive MLS Welcome messages with the following properties:
 
    *  To be able to accessible by multiple parties to write, but
-      constrained so that only one party (existing member) is allowed to
-      write for a given epoch.
+      constrained so that only one party is allowed to write for a given
+      epoch.
 
    *  One party, the recipient of the welcome, is be able to read the
-      MLS Welcome message in a given epoch.
+      MLS Welcome message.
 
                           +--------------------------+   +--->
                  ---+     |                          |   |
-    1 writer per    +---> |   MLS Welcome Queue      | --+   Single
-       epoch        +---> |                          | --+   Reader per
+    1 writer per    +---> |   MLS Welcome Queues     | --+   Single
+       epoch        +---> |   (1 queue per joiner)   | --+   Reader per
                  ---+     +--------------------------+   |    epoch
                                                          +--->
 
-5.1.3.  Updating Group State
+5.1.3.  Updating MLS Group State
 
    Members can update group's state when adding a new member, removing
    an existing member or updating group's entropy at any time during a
@@ -413,7 +418,7 @@ Table of Contents
       messages, but only one member is allowed to write per epoch.
 
    *  All the members can read and process MLS Commit message from the
-      commit queue every epoch to update their group state.
+      commit queue to update their group state.
 
                  ---+     +--------------------------+  +--->
     1 writer per     +--->|                          |--+   Multiple
@@ -666,31 +671,21 @@ Table of Contents
 
 7.1.  Lock API
 
-   GET /lock
-   Content-type: application/octet-stream
+   This is a simpple REST style API over HTTPS.
 
-   Body
-   MLS GroupId
-   MLS Epoch
+   GET /lock/<MLS Group ID>?val=<counter>
 
-   Response
-   OK or Locked or CounterError
+   Returns body with "LOCKED" for scuesss, and current value if the
+   counter for counter error.
 
 7.2.  Increment API
 
-   GET /increment
-   Content-type: application/octet-stream
-
-   Body
-   LockId
-
-
-   Response
-   OK or UnknonwErrpr
+   POST /increment/<MLS Group ID>
 
 8.  Interactions with MOQ Secure Objects
 
-   TODO
+   TODO - explain how the shared secret for each epock can be used as
+   the base key for and epock can be used as the key idetifier ( KID).
 
 9.  Security Considerations
 
