@@ -642,21 +642,21 @@ longer in use, its counter can be discarded.
 
 ## Lock API {#counter-lock}
 
-This is a simple REST style API over HTTPS used to request lock for 
+This is a simple REST style API over HTTPS used to request lock for
 a counter for a provided Counter ID.
 
 ~~~~
 GET /lock/<Couner ID>?val=<counter>
 ~~~~
 
-Returns "Ok" if lock acquistion succeded, a "Confict" response when lock is 
-already held with a retry_later time for retrying the lock acquistion or a 
-"CounterError" with the current value of the counter when the requested counter 
+Returns "Ok" if lock acquistion succeded, a "Confict" response when lock is
+already held with a retry_later time for retrying the lock acquistion or a
+"CounterError" with the current value of the counter when the requested counter
 doesn't match the `expected_next_value`.
 
 ## Increment API {#counter-incr}
 
-The increment HTTPS API allows the counter value stored in `expected_next_value` 
+The increment HTTPS API allows the counter value stored in `expected_next_value`
 to be incremented for the provided Counter ID.
 
 ~~~~
@@ -672,7 +672,7 @@ TODO: Define Error responses and codes for authorization failures.
 # Interactions with MOQ Secure Objects
 
 TODO - explain how the shared secret for each epoch can be used to
-derive `track_base_key` for each MOQT track  and use epoch as  key idetifier 
+derive `track_base_key` for each MOQT track  and use epoch as  key idetifier
 (KID) in the SecureObject Header.
 
 # Security Considerations
