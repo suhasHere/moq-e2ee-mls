@@ -85,20 +85,15 @@ Table of Contents
      6.1.  Bootstrapping MLS Session
      6.2.  Creating/Joining a MLS Group
      6.3.  Updating Group State
-     6.4.  Processing the Welcome Message
-     6.5.  Removing from the group
-     6.6.  Processing the MLS Commit Messages
-   7.  MLS MoQ Tracks
-     7.1.  KeyPackage
-     7.2.  Welcome
-     7.3.  Commit
-   8.  Epoch Service
-     8.1.  Create/Join Group API
-     8.2.  Commit API
-   9.  Interactions with MOQ Secure Objects
-   10. Security Considerations
-   11. IANA Considerations
-   12. Normative References
+       6.3.1.  Processing MLS Welcome Message
+       6.3.2.  Processing the MLS Commit Messages
+   7.  Epoch Counter Service
+     7.1.  Create/Join Group API
+     7.2.  Commit API
+   8.  Interactions with MOQ Secure Objects
+   9.  Security Considerations
+   10. IANA Considerations
+   11. Normative References
    Acknowledgments
    Authors' Addresses
 
@@ -498,19 +493,19 @@ Table of Contents
     │                                              │─────────────────────────────────────────────>│       │
     │                                              │                                              │       │
     │Namespace_Info(namespace=mls-grp1|keypackages,│                                              │       │
-    │name=joiner1,alias=j1))                       │                                              │       │
+    │name=joiner1,alias=j1)                       │                                              │       │
     │─────────────────────────────────────────────>│                                              │       │
     │                                              │                                              │       │
     │                                              │    Namespace_Info(namespace=mls-grp1|keypackages,    │
-    │                                              │    name=joiner1,alias=j1))                   │       │
+    │                                              │    name=joiner1,alias=j1)                   │       │
     │                                              │─────────────────────────────────────────────────────>│
     │                                              │                                              │       │
     │                                              │Namespace_Info(namespace=mls-grp1|keypackages,│       │
-    │                                              │name=joiner2,alias=j2))                       │       │
+    │                                              │name=joiner2,alias=j2)                       │       │
     │                                              │<─────────────────────────────────────────────│       │
     │                                              │                                              │       │
     │                                              │    Namespace_Info(namespace=mls-grp1|keypackages,    │
-    │                                              │    name=joiner2,alias=j2))                   │       │
+    │                                              │    name=joiner2,alias=j2)                   │       │
     │                                              │─────────────────────────────────────────────────────>│
     │                                              │                                              │       │
     │   Object(alias=j1,.., payload=KeyPackage)    │                                              │       │
@@ -571,106 +566,103 @@ Table of Contents
    the group state MUST be performed by a single memeber within a MLS
    group.
 
-6.4.  Processing the Welcome Message
+   The process of updating the group state is described below:
 
-   Participants await MLS Welcome message after publishing their
-   Keypackage to join the group.  They do so by subscribing to the
-   "Welcome" track.  On receipt of the Welcome message, local MLS state
-   is updated with the recevied Welcome message to obtain the group
-   secret for the current epoch.  If the participant is already a member
-   of the group, the Welcome message is dropped/ignored.
+   1.  Acquire lock for the current epoch from the counter service.
 
-6.5.  Removing from the group
+   2.a If the lock was successfully acquired and member is attempting to
+   add a new member, process the MLS KeyPackage(s) available over per
+   joiner's KeyPackage track, generate set of MLS Welcome messages per
+   joiner and a single MLS Commit message for the group.  Publish
+   individual MLS Welcome messages to the intended recipeints on per
+   recipient welcome track (see Section 6.3.1) and Publish MLS Commit
+   message to all the participants (see Section 6.3.2).
 
-   TODO: Add details
+   2.b If the lock was successfully acquired and the operation is to
+   remove a member, update the MLS state to remove the member, generate
+   MLS Commit message and publish the generated MLS Commit message to
+   all the participants (see Section 6.3.2).
 
-6.6.  Processing the MLS Commit Messages
+   1.  If the response was "Locked", following the procedures for
+       retrying as defined in (locked).
 
-   All the participants subscribe to "Commit" track for a given MLS
-   group.  This allows them to process MLS commit messages being
-   published under the following group update operations
+   2.  A lock response is "CounterError" implies the member attempting
+       to update the MLS group state is behind and MUST await until it
+       catches up with all the MLS Commit messages in transit.  It is
+       important to note, this situation MAY also imply that another
+       member won the contention to update the group state before this
+       member can make the change.
 
-   *  Add a new member
+6.3.1.  Processing MLS Welcome Message
 
-   *  Remove an existing member
+   In order to be able to publish MLS Welcome message and process the
+   same over MOQT, following track naming scheme is specified.
 
-   TODO: SHOULD we even support other updates ?
+   The TrackNamespace, termed "Welcome Namespace" is divided into 2
+   parts as shown below:
 
-7.  MLS MoQ Tracks
+   Welcome Namespace := <mls-group-name> |  "welcome"
 
-   For all the various tracks:
+   Note: The MLS group name chosen should be unique within a MOQ relay
+   network.
 
-   *  The TrackNamespace is scoped to the combination of MLS Group and
-      MLS operation.  The MLS group name chosen should be unique within
-      a MOQ relay network.
+   MLS Welcome message is published over a track that is specific to
+   individual recipient.  Joining participants subscribe to the "Welcome
+   Track" as part of MLS session bootstrapping, which has the following
+   structure:
 
-   TrackNamespace := <mls-group-name> | <mls-operation>
+   Welcome Track
+   Tracknamespace :=  Welcome Namespace
+   Trackname      :=  RecipientId
 
-   *  TrackName identifies the sender performing the operation.  The
-      value chosen for sender MUST be unique within a MOQ application.
+   The RecipientId value choosen MUST be unique within the MOQ
+   application.  The RECOMMENDED way to ensure uniques would be to use
+   certifcate fingerprint of the recipients's public key.  The group
+   member publishing the MLS Welcome message can obtain the RecipientId
+   while processing the KeyPackage of the member being addded.
 
-   TODO: add notes on ways to choose the sender
+   On receipt of the Welcome message, local MLS state is updated with
+   the received MLS Welcome message to obtain the group secret for the
+   current epoch.
 
-7.1.  KeyPackage
+   When publishing on the "Welcome Track", there one MOQT group per MLS
+   epoch and objectId 0 carries the MLS Welcome message.
 
-   Subscribe happens on the track namespce
+6.3.2.  Processing the MLS Commit Messages
 
-   TrackNamespace := mls-group | "keypackage" and
+   All the members subscribe to receive MLS Commit message and they do
+   so by subscribing to the "Commit Track" as shown:
 
-   and publishes happens on the
+   Commit Track
+   Tracknamespace :=  <mls-group-name>
+   Trackname      :=  commits
 
-    FullTrackName := mls-group | "keypackage" | sender-id
+   MLS Commit message updates the existing member about group changes,
+   such as adds/removes and entropy updates.  Publish to the "Commit
+   Track" happens with one MOQT group per MLS epoch and objectId 0
+   carries the MLS Commit message.
 
-   There is one MOQT group and objects within that group identify
-   different updates of the KeyPackage with objectId of 0 being sent at
-   the time of joining a MLS group
+7.  Epoch Counter Service
 
-7.2.  Welcome
+   TODO
 
-   Subscribes happens on the on the track namespce
+7.1.  Create/Join Group API
 
-   TrackNamespace := mls-group | "welcome"
+7.2.  Commit API
 
-   and Publish happens on ~~~ FullTrackName := mls-group | "welcome" |
-   sender-id ~~~
+8.  Interactions with MOQ Secure Objects
 
-   There is one MOQT group per MLS epoch and objectId 0 carries the MLS
-   Welcome message.
+   TODO
 
-7.3.  Commit
-
-   Subscribe happens on the namespace
-
-   TrackNamespace := mls-group | "commit"
-
-   and Publishes happens on ~~~~ FullTrackName := mls-group | "commit" |
-   sender-id ~~~~
-
-   There is one MOQT group per MLS epoch and objectId 0 carries the MLS
-   Commit message.
-
-8.  Epoch Service
-
-   The following REST endpoints can then be used to access the different
-   functionalities of the Epoch Service.
-
-8.1.  Create/Join Group API
-
-8.2.  Commit API
-
-9.  Interactions with MOQ Secure Objects
-
-   TODO: Describe epoch secret -> track_base_key
-
-10.  Security Considerations
+9.  Security Considerations
 
    TODO Security
 
-11.  IANA Considerations
+10.  IANA Considerations
 
    This document has no IANA actions.
 
-12.  Normative References
+11.  Normative References
 
    [MoQTransport]
               Curley, L., Pugin, K., Nandakumar, S., Vasiliev, V., and
