@@ -44,7 +44,9 @@ author:
 
 normative:
   MoQTransport: I-D.ietf-moq-transport
-  SecureObects: I-D.draft-jennings-moq-secure-objects
+  SecureObjects:
+    title: "Secure Objects for Media over QUIC"
+    target: https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-moq-secure-objects.html
 
 informative:
 
@@ -671,9 +673,33 @@ TODO: Define Error responses and codes for authorization failures.
 
 # Interactions with MOQ Secure Objects
 
-TODO - explain how the shared secret for each epoch can be used to
-derive `track_base_key` for each MOQT track  and use epoch as  key idetifier
-(KID) in the SecureObject Header.
+MLS Key agreement generates a group shared secret, called "MLS Mater Key",
+per MLS Epoch. Epochs in MLS are incremented whenever there is changed
+in the group state due to an existing member commit the changes to the group.
+
+MLS generated shared group secret per epoch can be used to derive
+`track_base_key` when using SecureObjects (see Section 5 ) for
+protecting the objects within a MOQT track.
+
+The procedure for the same is as defined below:
+
+1. For each combination of (MLS Epoch, MLS Master Key) an 'Epoch Secret' is dervied
+
+~~~~
+Epoch Secret = HKDF.Extract("SecureObject Epoch Master Key " | MLS Epoch, MLS Master Key)
+~~~~
+
+2. 'Epoch Secret' is used to derive `track_base_key` per `FullTrackName`
+(see Section 3 of {{SecureObjects}})
+
+~~~~
+track_base_key = HKDF.Expand("SecureObject Track Base Key " | FullTrackName, Epoch Secret)
+~~~~
+
+When encrypting/decrypting objects using SecureObject, the epoch under which the
+`track_base_key` was computed is used as `KID` in the SecureObject Header. The
+`track_base_key` computed is used to derive per object keys and nonce as defined in
+Section 5 of {{SecureObjects}}. All the objects within a given epoch are encrypted/decrypted with the keys derived from the `Epoch Secret` for that epoch.
 
 # Security Considerations
 
