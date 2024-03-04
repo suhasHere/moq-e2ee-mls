@@ -449,7 +449,7 @@ Note: The MLS group name chosen should be unique within a MOQ relay network.
 
 All the members subscribe to the "KeyPackage Namespace" to receive
 KeyPackages published over sender specific "KeyPackage Track"s as shown below,
-where the Trackname identifes the sender of the the KeyPackage.
+where the Trackname identifies the sender of the the KeyPackage.
 
 ~~~~
 KeyPackage Track
@@ -457,8 +457,8 @@ Tracknamespace :=  KeyPackage Namespace
 Trackname      :=  SenderId
 ~~~~
 
-The SenderId value choosen MUST be unique within the MOQ application. The
-RECOMMENDED way to ensure uniques would be to use certifcate fingerprint
+The SenderId value chosen MUST be unique within the MOQ application. The
+RECOMMENDED way to ensure uniques would be to use certificate fingerprint
 of the sender's public key.
 
 There is one MOQT Group within the KeyPackage Track and objects within that
@@ -468,7 +468,7 @@ a MLS group.
 
 Below figure depicts a sample call flow on how the MOQT Namespace subscribe
 is used to enable 2 participants (joiner1 and joiner2) to publish their
-keypackages and have the member is able to process both of them
+KeyPackages and have the member is able to process both of them
 
 
 ~~~~
@@ -527,11 +527,11 @@ keypackages and have the member is able to process both of them
 
 ## Creating/Joining a MLS Group
 
-Creating or Joining an MLS group requires a way for boostrapping the
+Creating or Joining an MLS group requires a way for boostraping the
 group when the first member joins and a way to decide an existing member
 for processing the MLS KeyPackage to add the new member.
 
-In order to realize the above functionalities and ensure the criticial
+In order to realize the above functionalities and ensure the critical
 invariants {{invariants}}, a centralized "Epoch Counter Service"
 (see epoch-svc) is required to address/resolve contention issues
 when multiple participants carryout the create/join procedures.
@@ -561,7 +561,7 @@ participant and publish the MLS Welcome message (see {{commits_welcome}})
 
 ## Updating Group State {#commits_welcome}
 
-Updating MLS group state requires {{invariants}} to be satifisfied. This means
+Updating MLS group state requires {{invariants}} to be satisfied. This means
 that the changes have to be done linearly and changes to the group state
 MUST be performed by a single member within a MLS group for a given epoch.
 
@@ -614,11 +614,11 @@ Tracknamespace :=  Welcome Namespace
 Trackname      :=  RecipientId
 ~~~~
 
-The RecipientId value choosen MUST be unique within the MOQ application. The
-RECOMMENDED way to ensure uniques would be to use certifcate fingerprint
+The RecipientId value chosen MUST be unique within the MOQ application. The
+RECOMMENDED way to ensure uniques would be to use certificate fingerprint
 of the recipients's public key. The group member publishing the MLS Welcome
 message can obtain the RecipientId while processing the KeyPackage of
-the member being addded.
+the member being added.
 
 On receipt of the Welcome message, local MLS state is updated with the
 received MLS Welcome message to obtain the group secret for the current
@@ -627,7 +627,7 @@ epoch.
 When publishing on the "Welcome Track", there is  one MOQT group per MLS epoch
 and objectId 0 carries the MLS Welcome message.
 
-### Processing the MLS Commit Messages {#process-commit}
+### Processing MLS Commit Messages {#process-commit}
 
 All the members subscribe to receive MLS Commit message and they do so
 by subscribing to the "Commit Track" as shown:
@@ -647,7 +647,7 @@ with one MOQT group per MLS epoch and objectId 0 carries the MLS Commit message.
 
 A counter service tracks a collection of counters with unique identifiers.
 In an MLS context, the counter value is equal to the MLS epoch, and the
-counter identifier is the MLS group identifier.
+counter identifier is the MLS group identifier/MLS group name.
 
 Before a counter can be incremented, it must be locked.  As part of the lock
 operation, the caller states what their expected next counter value, which
@@ -669,11 +669,11 @@ This is a simple REST style API over HTTPS used to request lock for
 a counter for a provided Counter ID.
 
 ~~~~
-GET /lock/<Couner ID>?val=<counter>
+GET /lock/<Counter ID>?val=<counter>
 ~~~~
 
-Returns "Ok" if lock acquistion succeded, a "Confict" response when lock is
-already held with a retry_later time for retrying the lock acquistion or a
+Returns "Ok" if lock acquisition succeeded, a "Confict" response when lock is
+already held with a retry_later time for retrying the lock acquisition or a
 "CounterError" with the current value of the counter when the requested counter
 doesn't match the `expected_next_value`.
 
@@ -704,14 +704,15 @@ protecting the objects within a MOQT track.
 
 The procedure for the same is as defined below:
 
-1. For each combination of (MLS Epoch, MLS Master Key) an 'Epoch Secret' is dervied
+For each combination of (MLS Epoch, MLS Master Key) an 'Epoch Secret'
+is derived:
 
 ~~~~
 Epoch Secret = HKDF.Extract("SecureObject Epoch Master Key " | MLS Epoch, MLS Master Key)
 ~~~~
 
-2. 'Epoch Secret' is used to derive `track_base_key` per `FullTrackName`
-(see Section 3 of {{SecureObjects}})
+'Epoch Secret' is used to derive `track_base_key` per `FullTrackName`
+(see Section 3 of {{SecureObjects}}):
 
 ~~~~
 track_base_key = HKDF.Expand("SecureObject Track Base Key " | FullTrackName, Epoch Secret)
