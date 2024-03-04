@@ -1975,9 +1975,38 @@ responses if the provider "Counter ID" hasn't been locked yet.<a href="#section-
       <h2 id="name-interactions-with-moq-secur">
 <a href="#section-8" class="section-number selfRef">8. </a><a href="#name-interactions-with-moq-secur" class="section-name selfRef">Interactions with MOQ Secure Objects</a>
       </h2>
-<p id="section-8-1">TODO - explain how the shared secret for each epoch can be used to
-derive <code>track_base_key</code> for each MOQT track  and use epoch as  key idetifier
-(KID) in the SecureObject Header.<a href="#section-8-1" class="pilcrow">¶</a></p>
+<p id="section-8-1">MLS Key agreement generates a group shared secret, called "MLS Mater Key",
+per MLS Epoch. Epochs in MLS are incremented whenever there is changed
+in the group state due to an existing member commit the changes to the group.<a href="#section-8-1" class="pilcrow">¶</a></p>
+<p id="section-8-2">MLS generated shared group secret per epoch can be used to derive
+<code>track_base_key</code> when using SecureObjects (see Section 5 ) for
+protecting the objects within a MOQT track.<a href="#section-8-2" class="pilcrow">¶</a></p>
+<p id="section-8-3">The procedure for the same is as defined below:<a href="#section-8-3" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-8-4">
+<li id="section-8-4.1">
+          <p id="section-8-4.1.1">For each combination of (MLS Epoch, MLS Master Key) an 'Epoch Secret' is dervied<a href="#section-8-4.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<div class="alignLeft art-text artwork" id="section-8-5">
+<pre>
+Epoch Secret = HKDF.Extract("SecureObject Epoch Master Key " | MLS Epoch, MLS Master Key)
+</pre><a href="#section-8-5" class="pilcrow">¶</a>
+</div>
+<ol start="1" type="1" class="normal type-1" id="section-8-6">
+<li id="section-8-6.1">
+          <p id="section-8-6.1.1">'Epoch Secret' is used to derive <code>track_base_key</code> per <code>FullTrackName</code>
+(see Section 3 of <span>[<a href="#SecureObjects" class="cite xref">SecureObjects</a>]</span>)<a href="#section-8-6.1.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<div class="alignLeft art-text artwork" id="section-8-7">
+<pre>
+track_base_key = HKDF.Expand("SecureObject Track Base Key " | FullTrackName, Epoch Secret)
+</pre><a href="#section-8-7" class="pilcrow">¶</a>
+</div>
+<p id="section-8-8">When encrypting/decrypting objects using SecureObject, the epoch under which the
+<code>track_base_key</code> was computed is used as <code>KID</code> in the SecureObject Header. The
+<code>track_base_key</code> computed is used to derive per object keys and nonce as defined in
+Section 5 of <span>[<a href="#SecureObjects" class="cite xref">SecureObjects</a>]</span>. All the objects within a given epoch are encrypted/decrypted with the keys derived from the <code>Epoch Secret</code> for that epoch.<a href="#section-8-8" class="pilcrow">¶</a></p>
 </section>
 </div>
 <div id="security-considerations">
@@ -2018,9 +2047,9 @@ derive <code>track_base_key</code> for each MOQT track  and use epoch as  key id
       <dd>
 <span class="refAuthor">Barnes, R.</span>, <span class="refAuthor">Beurdouche, B.</span>, <span class="refAuthor">Robert, R.</span>, <span class="refAuthor">Millican, J.</span>, <span class="refAuthor">Omara, E.</span>, and <span class="refAuthor">K. Cohn-Gordon</span>, <span class="refTitle">"The Messaging Layer Security (MLS) Protocol"</span>, <span class="seriesInfo">RFC 9420</span>, <span class="seriesInfo">DOI 10.17487/RFC9420</span>, <time datetime="2023-07" class="refDate">July 2023</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc9420">https://www.rfc-editor.org/rfc/rfc9420</a>&gt;</span>. </dd>
 <dd class="break"></dd>
-<dt id="SecureObects">[SecureObects]</dt>
+<dt id="SecureObjects">[SecureObjects]</dt>
     <dd>
-<span class="refTitle">"*** BROKEN REFERENCE ***"</span>. </dd>
+<span class="refTitle">"Secure Objects for Media over QUIC"</span>, <span>n.d.</span>, <span>&lt;<a href="https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-moq-secure-objects.html">https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-moq-secure-objects.html</a>&gt;</span>. </dd>
 <dd class="break"></dd>
 </dl>
 </section>
