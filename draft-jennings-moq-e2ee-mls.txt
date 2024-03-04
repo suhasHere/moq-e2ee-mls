@@ -14,7 +14,11 @@ Expires: 5 September 2024                                          Cisco
 
 Abstract
 
-   TODO Abstract
+   This specification defines secure end to end group key agreement
+   using Message Layer Security (MLS) for endpoints in Media over QUIC
+   (MOQ) applications.  It provides a design for sending MLS messages
+   over MOQ and also further defines a interface for simple counter
+   service for synchroniation of MLS messages.
 
 About This Document
 
@@ -99,7 +103,43 @@ Table of Contents
 
 1.  Introduction
 
-   TODO Introduction
+   Media Over QUIC Transport (MOQT) is a protocol that is optimized for
+   the QUIC protocol, either directly or via WebTransport, for the
+   dissemination of delivery of low latency media.  MOQT defines a
+   publish/subscribe media delivery layer across set of participating
+   relays for supporting wide range of use-cases with different
+   resiliency and latency (live, interactive) needs without compromising
+   the scalability and cost effectiveness associated with content
+   delivery networks.  It supports sending media objects through sets of
+   relays nodes.
+
+   MLS is a key establishment protocol that provides efficient
+   asynchronous group key establishment with forward secrecy (FS) and
+   post-compromise security (PCS) for groups in size ranging from two to
+   thousands.
+
+   This document defines procedures for MOQ endpoints to engage in
+   secure E2EE key establishment protocol using MLS over MOQT.
+
+   More specifically, this document provides
+
+   *  Design for using MOQT data model to carryout MLSD protocol
+      exchange
+
+   *  Simple counter service interface enabling synchronization of MLS
+      protocol messages.
+
+   *  Procedure to derive keys for MOQT object protection when using
+      [SecureObjects].
+
+   The document further enables following 2 goals:
+
+   1.  Use MOQT as delivery transport for MLS protocol meesages.
+
+   2.  Allow MOTQ endpoints (producers/consumers) to use MLS as secure
+       key exchange protocol for efficient and scalable end to end
+       secure group communications across range of use-cases, such as
+       conference calls, live streaming and so on.
 
 2.  Conventions and Definitions
 
