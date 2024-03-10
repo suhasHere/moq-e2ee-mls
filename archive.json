@@ -1,6 +1,6 @@
 {
   "magic": "E!vIA5L86J2I",
-  "timestamp": "2024-03-07T00:58:45.816300+00:00",
+  "timestamp": "2024-03-10T01:15:17.781467+00:00",
   "repo": "suhasHere/moq-e2ee-mls",
   "labels": [
     {
@@ -49,7 +49,24 @@
       "color": "ffffff"
     }
   ],
-  "issues": [],
+  "issues": [
+    {
+      "number": 2,
+      "id": "I_kwDOLa5NHM6Bwc5r",
+      "title": "ANNOUNCE and SUBSCRIBE_NAMESPACE alternate flow",
+      "url": "https://github.com/suhasHere/moq-e2ee-mls/issues/2",
+      "state": "OPEN",
+      "author": "afrind",
+      "authorAssociation": "NONE",
+      "assignees": [],
+      "labels": [],
+      "body": "Section 6.1 shows a flow where two clients ANNOUNCE the same Track Namespace to the same relay:\r\n\r\n```\r\n\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510                                       \u250c\u2500\u2500\u2500\u2500\u2500\u2510                                       \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2510\r\n\u2502Joiner1\u2502                                       \u2502Relay\u2502                                       \u2502Joiner2\u2502\u2502Member\u2502\r\n\u2514\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2518                                       \u2514\u2500\u2500\u252c\u2500\u2500\u2518                                       \u2514\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2518\u2514\u2500\u2500\u252c\u2500\u2500\u2500\u2518\r\n    \u2502                                              \u2502                                              \u2502       \u2502\r\n    \u2502        Announce(mls-grp1|keypackages)        \u2502                                              \u2502       \u2502\r\n    \u2502\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500>\u2502                                              \u2502       \u2502\r\n    \u2502                                              \u2502                                              \u2502       \u2502\r\n    \u2502                                              \u2502        Announce(mls-grp1|keypackages)        \u2502       \u2502\r\n    \u2502                                              \u2502<\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2502       \u2502\r\n    \u2502                                              \u2502                                              \u2502       \u2502\r\n```\r\n\r\nMy interpretation of ANNOUNCE_OK today is that the relay accepts the publisher as authoritative for the entire namespace -- eg: any SUBSCRIBE that matches the namespace can be sent to that publisher.  My read of this draft is that it departs from that concept: these publishers (Joiner1/2) are only authoritative for a *subset of the namespace*, and NAMESPACE_INFO is the mechanism by which a relay learns about the subset.\r\n\r\nI faced similar patterns with the moq-chat draft join flow, and to comply with current moq, made each participant's chat track belong to a namespace that was unique to the participant (https://afrind.github.io/draft-frindell-moq-chat/draft-frindell-moq-chat.html#section-4.4).  This led to the second problem: how do participants learn about the namespaces/tracks other clients have ANNOUNCED to the relay.  I originally filed https://github.com/moq-wg/moq-transport/issues/228, thinking there should be a mechanism by which a client can declare their interest in new announcements and become a catalog-less means of track discovery.  Based on wg feedback there, moq-chat now uses a different mechanism involving a simple catalog.  However, a variant of SUBSCRIBE_NAMESPACE is something I might have used -- \r\n\r\n```\r\nSUBSCRIBE_NAMESPACE {\r\n   Track Namespace Prefix (b),\r\n   Auth Info (b)\r\n }\r\n```\r\nThis would inform the relay to forward any **ANNOUNCE** with a prefix match.\r\n\r\nSo in moq-chat, each new participant would do this:\r\n \r\n```\r\nSUBSCRIBE_NAMESPACE(prefix=\"moq-chat/id/participant/\")\r\nANNOUNCE(namespace=\"moq-chat/id/participant/<name>\")\r\n```\r\nAnd a relay would reply with:\r\n\r\n```\r\nSUBSCRIBE_NAMESPACE_RESPONSE(\"ok\")\r\nANNOUCE_OK\r\n# existing announcements matching namespace prefix\r\nANNOUNCE(namespace=\"moq-chat/id/participant/<member1>\") \r\nANNOUNCE(namespace=\"moq-chat/id/participant/<member2>\")\r\nANNOUNCE(namespace=\"moq-chat/id/participant/<member3>\")\r\n...\r\n```\r\nIt would also forward any new ANNOUNCEs matching the prefix.\r\n \r\nThe new participant then issues standard SUBSCRIBE to each existing chat member\r\n \r\n```\r\nSUBSCRIBE(namespace=\"moq-chat/id/participant/<member1>\", name=\"chat\") \r\nSUBSCRIBE(namespace=\"moq-chat/id/participant/<member2>\", name=\"chat\") \r\n...\r\n```\r\n \r\nThis would remove the need for a catalog in moq-chat, but also keep the scope of ANNOUNCE the same as it is today.",
+      "createdAt": "2024-03-09T00:39:32Z",
+      "updatedAt": "2024-03-09T00:39:32Z",
+      "closedAt": null,
+      "comments": []
+    }
+  ],
   "pulls": [
     {
       "number": 1,
