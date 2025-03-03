@@ -32,15 +32,15 @@ author:
     organization: Cisco
     email: fluffy@cisco.com
  -
-    ins: R.L. Barnes
-    name: Richard L. Barnes
-    organization: Cisco
-    email: rlb@ipv.sx
- -
     ins: S. Nandakumar
     name: Suhas Nandakumar
     organization: Cisco
     email: snandaku@cisco.com
+ -
+    ins: R.L. Barnes
+    name: Richard L. Barnes
+    organization: Cisco
+    email: rlb@ipv.sx
 
 normative:
   MoQTransport: I-D.ietf-moq-transport
@@ -132,14 +132,14 @@ the MLS group.
 MLS requires a linear sequence of MLS Commits in that each MLS Commit
 has exactly one successor. This is achieved by using a centralized
 server that hands out a token to the client that is allowed to make
-the next commit.
+the next commit. See {{ctr-svc}}
 
 
 # MOQ Overview {#moqt-model}
 
-MOQT {{MoQTransport}} defines a publish/subscribe based media delivery protocol, where in
-endpoints, called producers, publish objects which are delivered via
-participating relays to receiving endpoints, called consumers.
+MOQT {{MoQTransport}} defines a publish/subscribe based media delivery
+protocol, where in endpoints, called producers, publish objects which are
+delivered via participating relays to receiving endpoints, called consumers.
 
 Section 2 of MoQ Transport defines hierarchical object model for
 application data, comprised of objects, groups and tracks.
@@ -205,12 +205,12 @@ integers called GroupId and ObjectId respectively.
 ## Simple Callflow
 
 Below is a simple callflow that shows the message exchange between,
-Alice (the producer) , Bob (the consumer) and Relay. The MOQT
+Alice (the producer), Bob (the consumer) and Relay. The MOQT
 protocol exchange starts with Alice sending MOQT Announce message with
 TrackNamespace under which she is going to publish media tracks.
 Then Bob issues a MOQT Subscribe message to the relay for a FullTrackName
 (identified  by its TrackNamespace and TrackName) expressing his interest to
-receive media. Relay makes downstream subscription to Alice since the
+receive media. Relay makes upstream subscription to Alice since the
 track namespace in the subscription matches the track namespace in the announcement
 from Alice. This is followed by Alice publishing media over the requested track,
 which is eventually forwarded to Bob via the Relay.
@@ -255,67 +255,32 @@ which is eventually forwarded to Bob via the Relay.
 
 ~~~~
 
-## TrackNamespace Subscription
+## Proposes changes to MOQT Protocol
 
 In order to realize the MLS key exchange over MOQ, this specification
-proposes MOQT endpoints and Relays to be able to subscribe to TrackNamespace.
-A sketch of the proposal is here but this would be moved out of this draft.
+proposes following changes to MOQ Transport
 
-Following additions is proposed to the core MOQT protocol.
+### Announce Full Track Name
 
-### SUBSCRIBE_NAMESPACE {#message-subscribe-namespace}
-
-A subscriber sends `SUBSCRIBE_NAMESPACE` to express its interest in all
-the tracks that will eventually be produced under the requested namespace.
+Announcing to Full Track Name allows authorized original publishers to publish
+their objects before the subscribers express their interest. We propose to
+modify the Announce message to include the FullTrackName as shown below:
 
 ~~~
-SUBSCRIBE_NAMESPACE
-{
-  Track Namespace (b),
-  Subscribe Namespace ID (i)
+
+ANNOUNCE Message {
+Type (i) = 0x6,
+Length (i),
+Track Namespace (tuple),
+Track Name Length(i),
+Track Name (..),
+Number of Parameters (i),
+Parameters (..) ...,
 }
 ~~~
 
-
-### SUBSCRIBE_NAMESPACE_RESPONSE {#message-subscribe-namespace-response}
-
-Publishers sends `SUBSCRIBE_NAMESPACE_RESPONSE` indicating the status
-of the request for subscribing to the track namespace.
-
-~~~
-SUBSCRIBE_NAMESPACE_RESPONSE
-{
-  Subscribe Namespace ID (i),
-  Status Code (i),
-  [Reason Phrase (b)]
-}
-~~~
-
-
-### NAMESPACE_INFO {#message-namespace-info}
-
-Publisher sends NAMESPACE_INFO message whenever it is ready to publish
-on new track under a track namespace {{message-subscribe-namespace}}
-message. The `NAMESPACE_INFO` message is a implicit subscription to the
-track, unless it is explicitly unsubscribed by the subscriber by
-sending `UNSUBSCRIBE` message. This message provides necessary mapping
-between `Track Alias`, `Subscribe Id` to the namespace requested in
-the `SUBSCRIBE NAMESPACE` message.
-
-~~~
-NAMESPACE_INFO
-{
-  Track Alias (i),
-  Subscribe ID (i),
-  Mapped Track Namespace (b),
-  Mapped Track Name (b),
-  Mapped Request Id (i)
-}
-~~~
-
-
-{{bootstrapping}} provides one of the applications of namespace subscription
-for MLS KeyPackage distribution.
+If the Track Name Length is zero, the Track Name is not included in the 
+Announce Message.
 
 # MLS and MOQ
 
@@ -424,167 +389,166 @@ for MLS Commit messages with the following properties:
 
 Section {{mls-hld}} provided an non-normative abstracted view (via Queue metaphor)
 to illustrate various MLS operations. Subsections
-below provide further normative details on realizing those abstractions via
-concepts from the MOQT data model (see {{ moqt-model}}).
+below provide further normative details on realizing those abstractions through 
+mapping to the MOQT data model (see {{moqt-model}}).
 
 ## Bootstrapping MLS Session {#bootstrapping}
 
 Each participant is provisioned, out of band, the MLS Group Name for a given
-MOQ application instance. As part of bootstrapping a MLS Session, participating
-MOQT endpoints needs to perform the following 2 actions:
+MOQ application session. As part of bootstrapping a MLS Session, participating
+MOQT endpoints needs to able to publish their MLS KeyPackages and express their
+interest to join a MLS group. The latter of which is discussed further in
+{{join-group}}.
 
-1. Subscribe to receive published MLS KeyPackages over MOQT Track for an MLS group.
+### KeyPackage Distribution {#kp-dist}
 
-2. Publishing MLS KeyPackages over a MOQT Track.
+Participants interested in joining a MLS group publish their MLS KeyPackage 
+by writing to the "KeyPackage" MOQT track whose details are defined below:
 
-To enable the above, following MOQT track definition is specified:
+~~~
+KeyPackage TrackNamespace := ("moq.mls.arpa/v1"),(<mls-group-name>)
+KeyPackage TrackName      := ("keypackages")
+KeyPackage FullTrackName  := KeyPackage TrackNamespace | KeyPackage TrackName
+~~~
 
-The TrackNamespace, termed "KeyPackage Namespace" is made up of
-2 parts as shown below:
+The MLS group name chosen MUST be unique within a MOQ relay network.
 
-~~~~
-KeyPackage Namespace := <mls-group-name> |  "keypackages"
-~~~~
-Note: The MLS group name chosen should be unique within a MOQ relay network.
+There is one MOQT Group per participant, where the Group ID represents 
+the Sender/Participant within the MLS Group. Each participant 
+is identified by a SenderID value and MUST be unique within the 
+MOQT Session. The MOQT Object is used to carry participant's 
+MLS KeyPackage. A participant can update their KeyPackage by 
+publishing a new object with the same group.
 
-All the members subscribe to the "KeyPackage Namespace" to receive
-KeyPackages published over sender specific "KeyPackage Track"s as shown below,
-where the Trackname identifies the sender of the the KeyPackage.
+Online members with active subscription to the "KeyPackage" track receive
+KeyPackages published by the participants. Members who are offline
+continue with their subscriptions to the "KeyPackage" track when
+they come online and also issue Fetch request to retrieve the missed
+MLS KeyPackages published since their were last online. The SenderID
+value to be used for the MOQT Group ID for Fetch request is obtained 
+via "Create/Join" flow as defined in {{join-group}}.
 
-~~~~
-KeyPackage Track
-Tracknamespace :=  KeyPackage Namespace
-Trackname      :=  SenderId
-~~~~
+Publishers of the KeyPackage SHOULD set the cache duration to take 
+into consideration the offline nature of the members. The cache 
+duration of 12 hours is RECOMMENDED.
 
-The SenderId value chosen MUST be unique within the MOQ application. The
-RECOMMENDED way to ensure uniques would be to use certificate fingerprint
-of the sender's public key.
+#### Rationale for using Sender ID to be the MOQT Group ID
 
-There is one MOQT Group within the KeyPackage Track and objects within that
-group identify different updates to the KeyPackage from a given publisher.
-KeyPackage published at `Object ID` of '0' is used to initiate joining
-a MLS group.
+One can envision one MOQT Track per sender instead of the above 
+proposal for MLS KeyPackage publishing. However, the challenge 
+with such an approach is that it would require each subscribers 
+to learn about all the Sender IDs in the MOQ Session. Even 
+though approaches like "Subscribe_Announces" might help when
+all the members are online, it doesn't help when members are 
+offline. The current proposal of having one MOQT Track for 
+KeyPackage distribution address the aforementioned drawback.
 
-Below figure depicts a sample call flow on how the MOQT Namespace subscribe
-is used to enable 2 participants (joiner1 and joiner2) to publish their
-KeyPackages and have the member is able to process both of them
+## Creating/Joining a MLS Group {#join-group}
 
+Participants intending to join a MLS group do so by
+sending "Join Request" over a MOQT Track called "Join Track",
+as defined below:
 
-~~~~
+~~~
+Join TrackNamespace := ("moq.mls.arpa/v1"),(<mls-group-name>)
+Join TrackName      := ("join")
+Join FullTrackName  := Join TrackNamespace | Join TrackName
+~~~
 
-┌───────┐                                       ┌─────┐                                       ┌───────┐┌──────┐
-│Joiner1│                                       │Relay│                                       │Joiner2││Member│
-└───┬───┘                                       └──┬──┘                                       └───┬───┘└──┬───┘
-    │                                              │                                              │       │
-    │        Announce(mls-grp1|keypackages)        │                                              │       │
-    │─────────────────────────────────────────────>│                                              │       │
-    │                                              │                                              │       │
-    │                                              │        Announce(mls-grp1|keypackages)        │       │
-    │                                              │<─────────────────────────────────────────────│       │
-    │                                              │                                              │       │
-    │                                              │      Subscribe_Namespace(mls-grp1|keypackages)       │
-    │                                              │<─────────────────────────────────────────────────────│
-    │                                              │                                              │       │
-    │  Subscribe_Namespace(mls-grp1|keypackages)   │                                              │       │
-    │<─────────────────────────────────────────────│                                              │       │
-    │                                              │                                              │       │
-    │                                              │  Subscribe_Namespace(mls-grp1|keypackages)   │       │
-    │                                              │─────────────────────────────────────────────>│       │
-    │                                              │                                              │       │
-    │Namespace_Info(namespace=mls-grp1|keypackages,│                                              │       │
-    │name=joiner1,alias=j1)                       │                                              │       │
-    │─────────────────────────────────────────────>│                                              │       │
-    │                                              │                                              │       │
-    │                                              │    Namespace_Info(namespace=mls-grp1|keypackages,    │
-    │                                              │    name=joiner1,alias=j1)                   │       │
-    │                                              │─────────────────────────────────────────────────────>│
-    │                                              │                                              │       │
-    │                                              │Namespace_Info(namespace=mls-grp1|keypackages,│       │
-    │                                              │name=joiner2,alias=j2)                       │       │
-    │                                              │<─────────────────────────────────────────────│       │
-    │                                              │                                              │       │
-    │                                              │    Namespace_Info(namespace=mls-grp1|keypackages,    │
-    │                                              │    name=joiner2,alias=j2)                   │       │
-    │                                              │─────────────────────────────────────────────────────>│
-    │                                              │                                              │       │
-    │   Object(alias=j1,.., payload=KeyPackage)    │                                              │       │
-    │─────────────────────────────────────────────>│                                              │       │
-    │                                              │                                              │       │
-    │                                              │       Object(alias=j1,.., payload=KeyPackage)│       │
-    │                                              │─────────────────────────────────────────────────────>│
-    │                                              │                                              │       │
-    │                                              │   Object(alias=j2,.., payload=KeyPackage)    │       │
-    │                                              │<─────────────────────────────────────────────│       │
-    │                                              │                                              │       │
-    │                                              │       Object(alias=j2,.., payload=KeyPackage)│       │
-    │                                              │─────────────────────────────────────────────────────>│
-┌───┴───┐                                       ┌──┴──┐                                       ┌───┴───┐┌──┴───┐
-│Joiner1│                                       │Relay│                                       │Joiner2││Member│
-└───────┘                                       └─────┘                                       └───────┘└──────┘
+The MOQT Group ID is determined via the "Counter Service" 
+(see {{ctr-svc}}) as described in the {{join-group-id}}.
+MOQT Object IDs starting from 0 are used to carry the 
+"JoinRequest" message as shown below:
 
 ~~~~
+JOIN Message {
+Type (i) = 0x1,
+Sender ID (i)
+}
+~~~~
 
-## Creating/Joining a MLS Group
+* Sender ID: Identifier of the participant intending to join the MLS group.
+This MUST match the Sender ID used for publishing the MLS KeyPackage.
+
+
+It is RECOMMENDED that Join messages be cached in the relays by 
+setting the max_cache_duration to atleast 30 minutes.
+
+
+### MOQT Group ID Determination {#join-group-id}
 
 Creating or Joining an MLS group requires a way for boostraping the
 group when the first member joins and a way to decide an existing member
 for processing the MLS KeyPackage to add the new member.
 
-In order to realize the above functionalities and ensure the critical
-invariants {{invariants}}, a centralized "Epoch Counter Service"
-(see epoch-svc) is required to address/resolve contention issues
-when multiple participants carryout the create/join procedures.
+Participants intending to join/create a MLS group try to acquire lock 
+from the counter service on the join endpoint {{counter-join}}. The request 
+identifies the MLS Group Name as the Counter ID to obtain the lock.
 
-Participants intending to join/create a MLS grooup, try to acquire lock from
-the counter service. The request identifies the MLS Group identified by its
-GroupId and epoch '0' as the counter to obtain the lock. The response can
-be one of the following:
+The response can be one of the following:
 
-* Ok: A response of OK implies that there doesn't exist an MLS Group.
-In this scenario, the participant is the first participant and thus
-creates the group unilaterally and generates the initial secret for the group.
-Following which the participant releases the acquired lock by performing the
-increment operation for the obtained lock, on the counter
-service.
+* Ok: A response of OK on the "Join" MOQT Track implies that there 
+doesn't exist an MLS Group. In this scenario, the participant is the 
+first participant and thus creates the group unilaterally and generates the 
+initial secret for the group. Following which the participant releases the 
+acquired lock by performing the increment operation for the obtained lock, 
+on the counter service.
 
 * Locked: A response of "Locked"  implies a conflicting request
-and the requestor has to retry acquiring the lock, after the lock expiry timeout
-provided in the response.
+and the requestor has to retry acquiring the lock, after the lock 
+expiry timeout provided in the response.
 
 * CounterError: A response of CounterError implies that the service has
-a different value of the current counter than the one requested (epoch 0).
+a different value of the current counter than the one requested (counter 0).
 This happens when the requested MLS Group has already been created. In such
 situations, the participant awaits for an existing member to add the
-participant and publish the MLS Welcome message (see {{commits_welcome}})
+joining participant and publish the MLS Welcome message 
+(see {{commits_welcome}}).
 
 
 ## Updating Group State {#commits_welcome}
 
-Updating MLS group state requires {{invariants}} to be satisfied. This means
-that the changes have to be done linearly and changes to the group state
-MUST be performed by a single member within a MLS group for a given epoch.
+Updating MLS group state requires {{invariants}} to be satisfied. 
+This means that the changes have to be done linearly and changes to 
+the group state MUST be performed by a single member within a MLS group 
+for a given epoch.
 
-The process of updating the group state is described below:
+Group state in MLS can be udpated by adding a new member, removing 
+an existing member or updating the group's entropy.
 
-1. Acquire lock for the current epoch from the counter service.
+### Adding a member to the MLS Group
 
-2.a If the lock was successfully acquired and member is attempting to add
-a new member, process the MLS KeyPackage(s) available over per
-joiner's KeyPackage track, generate set of MLS Welcome
-messages per joiner and a single MLS Commit message for the group. Publish
-individual MLS Welcome messages to the intended recipeints
-on per recipient welcome track (see {{process-welcome}}) and Publish MLS Commit
-message to all the participants (see {{process-commit}}).
+Members obtain a list of participants interested in joining a MLS group 
+either as part of updates to their subscriptions to the "Join" Track and/or
+by issuing Fetch request to retrieve the missed MLS Join messages
+based on the Latest Group ID in the Subscribe_OK message. This supports
+processing join requests even when the members were offline for a period
+of time.
 
-2.b If the lock was successfully acquired and the operation is to remove a
+
+The following process followed when adding a new member to a given MLS Group:
+
+1. Acquire lock for the current epoch from the counter service ({{counter-commit}}).
+
+2. If the lock was successfully acquired retrieve the MLS KeyPackage(s) 
+from the cache by issuing Fetch request to the "KeyPackage" track against the 
+the Sender ID in the Join message. The Sender ID maps to the start_group in the
+Fetch request and end_group is set to start_group + 1. If successfully retrieved, 
+process the KeyPackage and generate set of MLS Welcome messages per joiner and 
+a single MLS Commit message for the group. Publish individual MLS Welcome messages 
+to the intended recipeints on per recipient welcome track (see {{process-welcome}}) 
+and Publish MLS Commit message to all the participants (see {{process-commit}}).
+
+### Removing a member from the MLS Group
+
+If the lock was successfully acquired and the operation is to remove a
 member, update the MLS state to remove the member, generate MLS Commit message
-and publish the generated MLS Commit message to all the participants (see {{process-commit}}).
+and publish the generated MLS Commit message to all the participants
+(see {{process-commit}}).
 
-3. If the response was "Locked", following the procedures for retrying as
-defined in (locked).
-
-4. A lock response of "CounterError" implies the member attempting to
+In either of the flows, If the response was "Locked", following the 
+procedures for retrying as defined in (locked). A lock response of 
+"CounterError" implies the member attempting to
 update the MLS group state is behind and MUST await until it catches
 up with all the MLS Commit messages in transit. It is important to note,
 this situation MAY also imply that another member won the contention
@@ -600,31 +564,25 @@ The TrackNamespace, termed "Welcome Namespace" is divided into
 2 parts as shown below:
 
 ~~~~
-Welcome Namespace := <mls-group-name> |  "welcome"
+Welcome TrackNamespace := ("moq.mls.arpa/v1"),(<mls-group-name>),(<welcome>)
 ~~~~
-Note: The MLS group name chosen should be unique within a MOQ relay network.
 
 MLS Welcome message is published over a track that is specific to individual
 recipient. Joining participants subscribe to the "Welcome Track" as part
 of MLS session bootstrapping, which has the following structure:
 
 ~~~~
-Welcome Track
-Tracknamespace :=  Welcome Namespace
-Trackname      :=  RecipientId
+Welcome Tracknamespace :=  Welcome TrackNamespace
+Welcome Trackname      :=  (<Paricipant ID>)
 ~~~~
 
-The RecipientId value chosen MUST be unique within the MOQ application. The
-RECOMMENDED way to ensure uniques would be to use certificate fingerprint
-of the recipients's public key. The group member publishing the MLS Welcome
-message can obtain the RecipientId while processing the KeyPackage of
-the member being added.
-
-On receipt of the Welcome message, local MLS state is updated with the
-received MLS Welcome message to obtain the group secret for the current
+The Paricipant ID is same as the Sender ID obtained from the
+Join message when processing the MLS KeyPackag. On receipt of the 
+Welcome message, local MLS state is updated with the received 
+MLS Welcome message to obtain the group secret for the current
 epoch.
 
-When publishing on the "Welcome Track", there is  one MOQT group per MLS epoch
+When publishing on the "Welcome Track", there is one MOQT group per MLS epoch
 and objectId 0 carries the MLS Welcome message.
 
 ### Processing MLS Commit Messages {#process-commit}
@@ -633,9 +591,8 @@ All the members subscribe to receive MLS Commit message and they do so
 by subscribing to the "Commit Track" as shown:
 
 ~~~~
-Commit Track
-Tracknamespace :=  <mls-group-name>
-Trackname      :=  commits
+Commit Tracknamespace :=  ("moq.mls.arpa/v1"),(<mls-group-name>)
+Trackname      :=  commit
 ~~~~
 
 MLS Commit message updates the existing member about group changes, such
@@ -643,10 +600,12 @@ as adds/removes and entropy updates. Publish to the "Commit Track"  happens
 with one MOQT group per MLS epoch and objectId 0 carries the MLS Commit message.
 
 
-# Epoch Counter Service {#epoch-svc}
+# Counter Service {#ctr-svc}
 
 A counter service tracks a collection of counters with unique identifiers.
-In an MLS context, the counter value is equal to the MLS epoch, and the
+In an MLS context, the counter value is equal to the MLS epoch when performing
+MLS group commit operations (see {{commits_welcome}} and an incrementing 
+counter value for processing MLS Group Join operations {{join-group}}, and the
 counter identifier is the MLS group identifier/MLS group name.
 
 Before a counter can be incremented, it must be locked.  As part of the lock
@@ -666,24 +625,56 @@ longer in use, its counter can be discarded.
 ## Lock API {#counter-lock}
 
 This is a simple REST style API over HTTPS used to request lock for
-a counter for a provided Counter ID.
+a counter for a provided Counter ID. We define 2 HTTP Endpoints 
+for addressing {{join-group}} and {{commits_welcome}} operations.
+
+### Join API {#counter-join}
+Join lock API is used to acquire lock for a counter for a given Counter ID
+when a participant is trying to join a MLS group. The Counter ID
+MUST correspond to MLS Group Name.
 
 ~~~~
-GET /lock/<Counter ID>?val=<counter>
+GET /lock/join/<Counter ID>?val=<counter>
 ~~~~
 
-Returns "Ok" if lock acquisition succeeded, a "Confict" response when lock is
-already held with a retry_later time for retrying the lock acquisition or a
-"CounterError" with the current value of the counter when the requested counter
-doesn't match the `expected_next_value`.
+
+### Commit API {#counter-commit}
+Commit lock API is used to acquire lock for a counter for a given Counter ID
+when a participant is trying to update the MLS group state. The Counter ID
+MUST correspond to MLS Group Name.
+
+~~~~
+GET /lock/commit/<Counter ID>?val=<counter>
+~~~~
+
+Above APIs can be responded with the following responses:
+
+* "Ok" response impliesthat lock acquisition was successfull, 
+"Confict" response implies that lock is already held with a retry_later time for 
+retrying the lock acquisition.
+* "CounterError" response with the current value of the counter is returned when 
+the requested counter doesn't match the `expected_next_value`.
 
 ## Increment API {#counter-incr}
 
 The increment HTTPS API allows the counter value stored in `expected_next_value`
 to be incremented for the provided Counter ID.
 
+### Join API {{increment-join}}
+The increment Join API is used to increment the counter value for a given Counter ID
+when a participant has successfully acquired the lock on performing
+the join operation. The Counter ID MUST correspond to MLS Group Name.
 ~~~~
-POST /increment/<Counter ID>
+POST /increment/join/<Counter ID>
+~~~
+
+### Commit API {{increment-commit}}
+The increment commit API is used to increment the counter value for a given Counter ID
+when a participant has successfully acquired the lock on performing
+the commit operation. The Counter ID MUST correspond to MLS Group Name.
+
+~~~~
+POST /increment/commit/<Counter ID>
 ~~~~
 
 Returns "Ok" if the counter value was successfully incremented, a "Error"
@@ -721,7 +712,8 @@ track_base_key = HKDF.Expand("SecureObject Track Base Key " | FullTrackName, Epo
 When encrypting/decrypting objects using SecureObject, the epoch under which the
 `track_base_key` was computed is used as `KID` in the SecureObject Header. The
 `track_base_key` computed is used to derive per object keys and nonce as defined in
-Section 5 of {{SecureObjects}}. All the objects within a given epoch are encrypted/decrypted with the keys derived from the `Epoch Secret` for that epoch.
+Section 5 of {{SecureObjects}}. All the objects within a given epoch are 
+encrypted/decrypted with the keys derived from the `Epoch Secret` for that epoch.
 
 # Security Considerations
 
