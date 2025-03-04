@@ -605,8 +605,8 @@ with one MOQT group per MLS epoch and objectId 0 carries the MLS Commit message.
 
 A counter service tracks a collection of counters with unique identifiers.
 In an MLS context, the counter value is equal to the MLS epoch when performing
-MLS group commit operations (see {{commits_welcome}} and an incrementing
-counter value for processing MLS Group Join operations {{join-group}}, and the
+MLS group commit operations (see {{commits_welcome}}) and an incrementing
+counter value for processing MLS Group Join operations (see {{join-group}}), and the
 counter identifier is the MLS group identifier/MLS group name.
 
 Before a counter can be incremented, it must be locked.  As part of the lock
