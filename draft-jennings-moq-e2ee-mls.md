@@ -1,6 +1,6 @@
 ---
-title: "Secure Group Key Agreement with MLS over MoQ"
-abbrev: "moq-mls"
+title: "End-to-end Security for Media over QUIC"
+abbrev: "MoQ E2EE"
 docname: draft-jennings-moq-e2ee-mls-latest
 date: {DATE}
 category: info
@@ -43,690 +43,401 @@ author:
     email: rlb@ipv.sx
 
 normative:
-  MoQTransport: I-D.ietf-moq-transport
-  SecureObjects:
-    title: "Secure Objects for Media over QUIC"
-    target: https://suhashere.github.io/moq-secure-objects/#go.draft-jennings-moq-secure-objects.html
+  MOQT: I-D.ietf-moq-transport
+  MLS: RFC9420
+  SFrame: RFC9605
 
 informative:
 
 
 --- abstract
 
-This specification defines a mechanism to use Message Layer Security (MLS)
-to provide end-to-end group key agreement for Media over QUIC (MOQ) applications.
-Almost all communications are done via the MOQ transport.  MLS requires a
-small degree of synchronization, which is provided by a simple counter service.
+The Media over QUIC system allows relays to assist in the delivery of real-time
+media.  While these relays are trusted to facilitate media delivery, they are
+not trusted to access the media content.  The document describes an end-to-end
+security system that prevents relays from accessing media content.  MLS is used
+to establish keys that are available only to legitimate participants in a
+session, which are then used to protect media data using SFrame.
 
 --- middle
 
 # Introduction
 
-Media Over QUIC Transport (MOQT) is a protocol that is optimized for the
-QUIC protocol, either directly or via WebTransport, for the
-dissemination of delivery of low latency media. MOQT defines a
-publish/subscribe media delivery layer across set of participating
-relays for supporting wide range of use-cases with different resiliency
-and latency (live, interactive) needs without compromising the
-scalability and cost effectiveness associated with content delivery
-networks. It supports sending media objects through sets of relays
-nodes.
+The Media over QUIC (MOQ) system allows relays to assist in the delivery of
+real-time media. While these relays are trusted to facilitate media delivery,
+they are not trusted to access the media content.  This distinction is
+especially important in the more flexible relay topology that MOQ envisions,
+where a client might enlist a local relay to assist in media distribution,
+having no prior relationship with this relay.
 
-MLS is a key establishment protocol that provides efficient asynchronous
-group key establishment with forward secrecy (FS) and post-compromise
-security (PCS) for groups in size ranging from two to thousands.
+The document describes an end-to-end security system that prevents relays from
+accessing media content.  MOQ tracks are associated to "security groups" so that
+content in the track can only be accessed by clients that are part of the
+security group.  Security groups also allow clients to authenticate one
+anothers' identities, so that any client can verify that there are no
+unauthorized parties in the security group.
 
-This document defines procedures for MOQ endpoints to engage in
-secure E2EE key establishment protocol using MLS over MOQT.
+To create these security groups, we rely on two widely deployed security
+technologies: MLS for group key exchange and SFrame for lightweight media
+encryption {{MLS}} {{SFrame}}.  The security group maintains an MLS group that
+establishes the identities of group members and sets up shared secrets.  The MLS
+messages required to keep MLS state up to date as clients join and leave are
+primarily distributed over MOQ.  The only additional infrastructure required is
+a coordination service that can be provided either by a decentralized algorithm
+or a lightweight HTTPS service.  Media is protected from relays simply by adding
+a layer of SFrame encryption, using keys derived from the MLS group.
 
-More specifically, this document provides
-
-- Design for using MOQT data model to carrying out MLS protocol exchange
-- Simple counter service interface enabling synchronization of MLS protocol
-  messages.
-- Procedures to derive keys for MOQT object protection when using {{SecureObjects}}.
-
-# Conventions and Definitions
+# Terminology
 
 {::boilerplate bcp14-tagged}
 
-The "|" operator is is used to indicate concatenation of two strings or
-bytes arrays.
+This document makes extensive use of terminology from MOQT, MLS, and SFrame
+{{MOQT}} {{MLS}} {{SFrame}}.  The few data structures we define use the TLS
+presentation syntax, defined in {{Section 3 of !RFC8446}}, with the `optional`
+extension defined in {{Section 2.1.1 of MLS}}.
 
-# MLS Overview
+We introduce the following terms:
 
-MLS protocol provides continuous group authenticated key exchange.  MLS
-provides several important security properties
+Security group:
+: A logical grouping of clients that provides cryptographic security services to
+MOQ tracks.
 
-* Group Key Exchange: All members of the group at a given time know a
-  secret key that is inaccessible to parties outside the group.
+Coordination service:
+: A logical service that coordinates the operations required to maintain a
+security group.
 
-* Authentication of group members: Each member of the group can
-  authenticate the other members of the group.
+# Protocol Overview
 
-* Group Agreement: The members of the group all agree on the identities
-  of the participants in the group.
+In the Media over QUIC Transport (MOQT), media streams are arranged in tracks,
+each of which carries many individual media objects.  This document adds a
+notion of "security groups", each of which is used to protect one or more
+MOQT tracks.  (Each track has at most one security group.)
 
-* Forward Secrecy: There are protocol events such that if a member's
-  state is compromised after the event, group secrets created before the
-  event are safe.
+## Security Groups
 
-* Post-compromise Security: There are protocol events such that if a
-  member's state is compromised before the event, the group secrets
-  created after the event are safe.
+Logically, a security group is a set of clients with the following properties:
 
-At a very high level, MLS protocol operates by participants sending
-proposals to add/remove/update the group state and an active member of
-the group commit the proposals to move the group’s cryptographic state
-from one epoch to the next (see section 3.2 of {{!RFC9420}}).
+* Each client can authenticate the identity of every other client.
+* Each client can encrypt media that can be decrypted by every other client.
 
-In order to setup end to end encryption of media delivered over MOQT
-delivery network, producers and consumers participate in the MLS
-exchange to setup group secret through which are used to derive the
-keys needed for encrypting the media/data published by the members of
-the MLS group.
+A security group is represented on a client an MLS group and an SFrame context.
+The MLS group stores information about the other clients pariticipating in the
+security group, and information to facilitate updating the group's secrets as
+clients join and leave.  The SFrame context uses secrets produced by the MLS
+group to perform encryption and decryption operations.
 
+To facilitate the MLS interactions required to maintain the security group, the
+group must have access to a Coordination Service (CS).  This function is shown
+as a discrete role below, but could be provided either by a centralized service
+or by a decentralized algorithm.  For example, MLS requires exactly one Commit
+message per epoch of the group; in this system, the CS decides which Commit will
+be sent to group members. The structure of the CS is not defined here, except
+for one notional design in {{http-cs}}.
 
-## Critical Invariants {#invariants}
+A security group needs to be configured with three tracks:
 
-MLS requires a linear sequence of MLS Commits in that each MLS Commit
-has exactly one successor. This is achieved by using a centralized
-server that hands out a token to the client that is allowed to make
-the next commit (See {{ctr-svc}}.
+CommitTrack:
+: A track on which MLS Commit messages will be sent to the group.
 
+RequestTrack:
+: A track on which members attempting to join/leave will send requests for
+action by other members of the group.
 
-# MOQ Overview {#moqt-model}
+WelcomeTrack:
+: A track on which MLS Welcome messages will be sent to new joiners.
 
-MOQT {{MoQTransport}} defines a publish/subscribe based media delivery
-protocol, where in endpoints, called producers, publish objects which are
-delivered via participating relays to receiving endpoints, called consumers.
+All members of the security group subscribe to the CommitTrack so that they can
+keep up to date on the state of the group.  "Committers", members who might make
+Commits to add or remove other members subscribe to the RequestTrack in order to
+learn what work needs to be done.  New joiners subscribe to the WelcomeTrack
+temporarily, so that they can get the Welcome information they need to join the
+group, then they unsubscribe.
 
-Section 2 of MoQ Transport defines hierarchical object model for
-application data, comprised of objects, groups and tracks.
+## Lifecycle of a Security Group
 
-Objects defines the basic data element, an addressable unit whose
-payload is sequence of bytes. All objects belong to a group, indicating
-ordering and potential dependencies. A track contains a sequence of
-groups and serves as the entity against which a consumer issues a
-subscription request.
+{{fig-overview}} summarizes the interactions involved in managing a security
+group.
 
-~~~~~
-  Media Over QUIC Application
+~~~ aasvg
 
+Joiner <----------------------.
+   |                           | Welcome
+   | JoinRequest               |
+   |                    +------+-------+
+   +------------------->| Coordination |<---------------+
+   |                    +---+-------+--+     Commit +   |
+   |                        |       |        Welcome    |
+   |                     Commit  Request                |
+   |                        |       |                   |
+   |                      .-+-.     |                   |
+   |                     |     |    |                   |
+   |    .----------------|-----|---' '----------.       |
+   |   |                 |     |                 |      |
+   |   |                 |     |                 |      |
+   |   V                 |     |                 V      |
+   | +---+               |     |               +---+    |
+   | | A |<-------.-----'|     |'-----.------->| H +----+
+   | +---+       |       |     |       |       +---+
+   |             |       |     |       |
+   |             V       |     |       V
+   |           +---+     |     |     +---+
+   +-----------+ B |     |     |     | G |
+LeaveRequest   +---+     |     |     +---+
+                         |     |
+               +---+     |     |     +---+
+               | C |<---'|     |'--->| F |
+               +---+     |     |     +---+
+                         V     V
+                       +---+ +---+
+                       | D | | E |
+                       +---+ +---+
+~~~
+{: #fig-overview title="Overview of E2EE Coordination" }
 
-          |                                                       time
-          |
- TrackA   +-+---------+-----+---------+--------------+---------+---->
-          | | Group1  |     | Group2  |  . . . . . . | GroupN  |
-          | +----+----+     +----+----+              +---------+
-          |      |               |
-          |      |               |
-          | +----+----+     +----+----+
-          | | Object0 |     | Object0 |
-          | +---------+     +---------+
-          | | Object1 |     | Object1 |
-          | +---------+     +---------+
-          | | Object2 |     | Object2 |
-          | +---------+     +---------+
-          |      .
-          |      .
-          |      .
-          | +---------+
-          | | ObjectN |
-          | +---------+
-          |
-          |                                                       time
-          |
- TrackB   +-+---------+-----+---------+--------------+---------+---->
-          | | Group1  |     | Group2  | . . .. .. .. | GroupN  |
-          | +---+-----+     +----+----+              +----+----+
-          |     |                |                        |
-          |     |                |                        |
-          |+----+----+      +----+----+              +----+----+
-          || Object0 |      | Object0 |              | Object0 |
-          |+---------+      +---------+              +---------+
-          |
-          v
+The life of the security group begins when the first client seeks to join, say
+client A.  Like any other joiner, A subscribes to the CommitTrack and the
+WelcomeTrack.  A has been informed out of band that they will act as a
+committer, so A also commits to the RequestTrack.
 
-
-~~~~~
-
-Objects are comprised of two parts: envelope and a payload. The envelope
-is never end to end encrypted and is always visible to relays. The
-payload portion may be end to end encrypted, in which case it is only
-visible to the producer and consumer. The application is solely
-responsible for the content of the object payload.
-
-Tracks are identified by a combination of its `TrackNamespace ` and
-`TrackName`. TrackNamespace and TrackName are treated as a sequence of
-binary bytes. Group and Objects are represented as variable length
-integers called GroupId and ObjectId respectively.
-
-## Simple Callflow
-
-Below is a simple callflow that shows the message exchange between,
-Alice (the producer), Bob (the consumer) and Relay. The MOQT
-protocol exchange starts with Alice sending MOQT Announce message with
-TrackNamespace under which she is going to publish media tracks.
-Then Bob issues a MOQT Subscribe message to the relay for a FullTrackName
-(identified  by its TrackNamespace and TrackName) expressing his interest to
-receive media. Relay makes upstream subscription to Alice since the
-track namespace in the subscription matches the track namespace in the announcement
-from Alice. This is followed by Alice publishing media over the requested track,
-which is eventually forwarded to Bob via the Relay.
-
-~~~~
- ┌──────────┐                    ┌─────┐                   ┌────────┐
- │Alice(Pub)│                    │Relay│                   │Bob(Sub)│
- └────┬─────┘                    └──┬──┘                   └───┬────┘
-      │                             │                          │
-      │Announce(id=1,TrackNamespace)│                          │
-      │────────────────────────────>│                          │
-      │                             │                          │
-      │      AnnounceOk(id=1)       │                          │
-      │<────────────────────────────│                          │
-      │                             │                          │
-      │                             │Subscribe(id=1, TrackName)│
-      │                             │<─────────────────────────│
-      │                             │                          │
-      │                             │    SubscribeOk(id=1)     │
-      │                             │─────────────────────────>│
-      │                             │                          │
-      │ Subscribe(id=2, TrackName)  │                          │
-      │<────────────────────────────│                          │
-      │                             │                          │
-      │      SubscribeOk(id=2)      │                          │
-      │────────────────────────────>│                          │
-      │                             │                          │
-      │        Object Flow          │                          │
-      │────────────────────────────>│                          │
-      │                             │                          │
-      │                             │       Object Flow        │
-      │                             │─────────────────────────>│
-      │                             │                          │
-      │                             │    Unsubscribe(id=1)     │
-      │                             │<─────────────────────────│
-      │                             │                          │
-      │      Unsubscribe(id=1)      │                          │
-      │<────────────────────────────│                          │
- ┌────┴─────┐                    ┌──┴──┐                   ┌───┴────┐
- │Alice(Pub)│                    │Relay│                   │Bob(Sub)│
- └──────────┘                    └─────┘                   └────────┘
-
-~~~~
-
-## Proposed changes to MOQT Protocol
-
-In order to realize the MLS key exchange over MOQ, this specification
-proposes following changes to MOQ Transport. The changes are to
-be discussed within the MOQ WG and will be deleted from this draft.
-
-### Announce Full Track Name
-
-Announcing to Full Track Name allows authorized original publishers to publish
-their objects before the subscribers express their interest. We propose to
-modify the Announce message to include the FullTrackName as shown below:
+When A sends a request to join the group, the CS informs A that the group does
+not yet exist.  A then locally creates a one-member group.
 
 ~~~
-
-ANNOUNCE Message {
-Type (i) = 0x6,
-Length (i),
-Track Namespace (tuple),
-Track Name Length(i),
-Track Name (..),
-Number of Parameters (i),
-Parameters (..) ...,
-}
+# A joins
+A->Relay: SUBSCRIBE(CommitTrack)
+A->Relay: SUBSCRIBE(WelcomeTrack)
+A->Relay: SUBSCRIBE(RequestTrack)
+A -> CS: JoinRequest
+CS -> A: Error(Group does not exist)
+A: <Creates group, epoch=0>
+A->Relay: UNSUBSCRIBE(WelcomeTrack)
 ~~~
 
-If the Track Name Length is zero, the Track Name is not included in the
-Announce Message.
+When B joins, their JoinRequest is instead forwarded to the RequestTrack, and
+thus to A.  A creates a Welcome message that adds B to the group, and a Commit
+message that updates current members of the group.  A sends the Commit and the
+Welcome to the CS, who forwards the Welcome to the WelcomeTrack (and thus to B),
+and the Commit on the CommitTrack.
 
+When B receives the Welcome, it can initiate its MLS state.  When A receives
+their Commit back, they know that their Commit has been selected by the CS, and
+thus that it is safe to update to the next epoch, which includes B.
 
-# MLS and MOQ
-
-This specification defines procedures for participants engaging in MLS
-key exchange to happen over MOQT protocol, thus enabling following 2 goals:
-
-1. Use MOQT as delivery transport for MLS protocol messages.
-
-2. Allow MOQT endpoints (producers/consumers) to use MLS as secure
-key exchange protocol for end to end secure communications across
-range of use-cases.
-
-
-## High-level Design {#mls-hld}
-
-MLS {{!RFC9420}} achieves group key agreement by participants/members
-engaging in MLS protocol message exchange that allows:
-
-- New members to express their interest to join a  MLS group
-
-- Existing members to commit a new members to a MLS group
-
-- Existing members to commit removal of existing members from a MLS group
-
-The central unit of functionality in MLS is a group, where at any given time,
-a group represents a secret known only to its members. Membership to the group
-can change over time. Each time membership changes (batch of joins or
-leaves), the shared secret is changed to one known only by the current
-members. Each period of time with stable membership/secret is an epoch.
-
-At a high level, one can envision MLS protocol operation in the form
-multiple queue abstractions to achieve the above functionality.
-
-### KeyPackage Distribution
-
-All participants interested in joining a MLS group share their MLS KeyPackage(s)
-with the group, thus enabling an existing member to add new members to the
-MLS group. In this context, KeyPackages distribution/processing can be modeled
-a "queue of KeyPackages". Such a queue provides following properties:
-
-- Multiple parties to write to it, when participants submit their KeyPackages.
-
-- Multiple parties to read/process from the queue, to process the KeyPackage for
-  updating the MLS group state.
-
-~~~~
-                       +---------------------------+   +--->
-  Multiple    ---+     |                           |   |   Multiple
- Simultaneous    +---> |    MLS KeyPackage Queue   | --+ Simultaneous
-   Writers       +---> |                           |   |   Readers
-              ---+     +---------------------------+   +--->
-~~~~
-
-
-### Welcoming New Member
-
-Once a MLS KeyPackage is verified, an existing member can add a new member to the
-MLS group and send MLS Welcome message to invite the new member to join the
-group. This procedure can be abstracted via message queues for each joiner to
-receive MLS Welcome messages with the following properties:
-
-- Accessible by multiple parties to write, but constrained so
-  that only one party is allowed to write for a given epoch.
-
-- One party, the recipient of the welcome message, is be able to read the
-  MLS Welcome message.
-
-~~~~
-                       +--------------------------+   +--->
-              ---+     |                          |   |
- 1 writer per    +---> |   MLS Welcome Queues     | --+   Single
-    epoch        +---> |   (1 queue per joiner)   | --+   Reader
-              ---+     +--------------------------+   |
-                                                      +--->
-~~~~
-
-
-### Updating MLS Group State
-
-Members can update group's state when adding a new member, removing an
-existing member or updating group's entropy at any time during a MLS
-session. Group updates are performed via MLS Commit messages and successful
-commits result in moving the MLS epoch further. MLS Commit message needs to
-be processed by all the members to compute the shared group secret for that
-epoch.
-
-The distribution of commit messages can be modeled with a message queue
-for MLS Commit messages with the following properties:
-
-- Any member can access the commit queue for writing MLS Commit messages,
-  but only one member is allowed to write per epoch.
-
-- All the members can read and process MLS Commit message from the commit
-  queue to update their group state.
-
-~~~~
-              ---+     +--------------------------+  +--->
- 1 writer per     +--->|                          |--+   Multiple
-    epoch         +--->|   MLS Commit Queue       |--+ Simultaneous
-              ---+     |                          |  |    Readers
-                       +--------------------------+  +--->
-~~~~
-
-
-# MLS Group Key Exchange over MOQT
-
-Section {{mls-hld}} provided an non-normative abstracted view (via Queue metaphor)
-to illustrate various MLS operations. Subsections
-below provide further normative details on realizing those abstractions through
-mapping to the MOQT data model (see {{moqt-model}}).
-
-## Bootstrapping MLS Session {#bootstrapping}
-
-Each participant is provisioned, out of band, the MLS Group Name for a given
-MOQ application session. As part of bootstrapping a MLS Session, participating
-MOQT endpoints needs to able to publish their MLS KeyPackages and express their
-interest to join a MLS group. The latter of which is discussed further in
-{{join-group}}.
-
-### KeyPackage Distribution {#kp-dist}
-
-Participants interested in joining a MLS group publish their MLS KeyPackage
-by writing to the "KeyPackage" MOQT track whose details are defined below:
+At the end of this process, A and B are now both members of the security group.
+They can authenticate each other, and they share secret keys that they can use
+to encrypt media tracks associated to this security group.
 
 ~~~
-KeyPackage TrackNamespace := ("moq.mls.arpa/v1"),(<mls-group-name>)
-KeyPackage TrackName      := ("keypackages")
-KeyPackage FullTrackName  := KeyPackage TrackNamespace | KeyPackage TrackName
+# B joins
+B: SUBSCRIBE(CommitTrack)
+B: SUBSCRIBE(WelcomeTrack)
+B -> CS: JoinRequest
+CS -> RequestTrack: JoinRequest
+RequestTrack -> A: JoinRequest
+A -> CS: Commit + Welcome
+CS -> WelcomeTrack: Welcome
+CS -> CommitTrack: Commit
+
+WelcomeTrack -> B: Welcome
+B: <Uses Welcome to initialize state, epoch=1>
+B->Relay: UNSUBSCRIBE(WelcomeTrack)
+
+CommitTrack -> A: Commit
+A: <Processes Commit, epoch=1>
 ~~~
 
-The MLS group name chosen MUST be unique within a MOQ relay network.
-
-There is one MOQT Group per participant, where the Group ID represents
-the Sender/Participant within the MLS Group. Each participant
-is identified by a SenderID value and MUST be unique within the
-MOQT Session. The MOQT Object is used to carry participant's
-MLS KeyPackage. A participant can update their KeyPackage by
-publishing a new object with the same group.
-
-Online members with active subscription to the "KeyPackage" track receive
-KeyPackages published by the participants. Members who are offline
-continue with their subscriptions to the "KeyPackage" track when
-they come online and also issue FETCH request to retrieve the missed
-MLS KeyPackages published since they were last online. The Sender ID
-value to be used for the MOQT Group ID for FETCH request is obtained
-via "Create/Join" flow as defined in {{join-group}}.
-
-Publishers of the KeyPackage SHOULD set the cache duration to take
-into consideration the offline nature of the members. The cache
-duration of 12 hours is RECOMMENDED.
-
-#### Rationale for using Sender ID to be the MOQT Group ID
-
-One can envision one MOQT Track per sender instead of the above
-proposal for MLS KeyPackage publishing. However, the challenge
-with such an approach is that it would require each subscribers
-to learn about all the Sender IDs in the MOQ Session. Even
-though approaches like "Subscribe_Announces" might help when
-all the members are online, it doesn't help when members are
-offline. The current proposal of having one MOQT Track for
-KeyPackage distribution address the aforementioned drawback.
-
-## Creating/Joining a MLS Group {#join-group}
-
-Participants intending to join a MLS group do so by
-sending "Join Request" over a MOQT Track called "Join Track",
-as defined below:
+The join process for subsequent members unfolds in the same way: A request
+to join results in a Commit and Welcome from an existing member, which are
+distributed to the group and the joiner.  The only difference is that now there
+are members of the group other than the joiner and the committer.  These passive
+members simply apply the Commits as they arrive.
 
 ~~~
-Join TrackNamespace := ("moq.mls.arpa/v1"),(<mls-group-name>)
-Join TrackName      := ("join")
-Join FullTrackName  := Join TrackNamespace | Join TrackName
+# C joins
+C->Relay: SUBSCRIBE(CommitTrack)
+C->Relay: SUBSCRIBE(WelcomeTrack)
+C -> CS: JoinRequest
+CS -> RequestTrack: JoinRequest
+RequestTrack -> A: JoinRequest
+A -> CS: Commit + Welcome
+CS -> WelcomeTrack: Welcome
+CS -> CommitTrack: Commit
+
+WelcomeTrack -> C: Welcome
+C: <Uses Welcome to initialize state, epoch=2>
+C->Relay: UNSUBSCRIBE(WelcomeTrack)
+
+CommitTrack -> A: Commit
+A: <Processes Commit, epoch=2>
+
+CommitTrack -> B: Commit
+B: <Processes Commit, epoch=2>
 ~~~
 
-The MOQT Group ID is determined via the "Counter Service"
-(see {{ctr-svc}}) as described in the {{join-group-id}}.
-MOQT Object IDs starting from 0 are used to carry the
-"JoinRequest" message as shown below:
-
-~~~~
-JOIN Message {
-Type (i) = 0x1,
-Sender ID (i)
-}
-~~~~
-
-* Sender ID: Identifier of the participant intending to join the MLS group.
-This MUST match the Sender ID used for publishing the MLS KeyPackage.
-
-It is RECOMMENDED that Join messages be cached in the relays by
-setting the max_cache_duration to atleast 30 minutes.
-
-
-### MOQT Group ID Determination {#join-group-id}
-
-Creating or Joining an MLS group requires a way for boostraping the
-group when the first member joins and a way to decide an existing member
-for processing the MLS KeyPackage to add the new member.
-
-Participants intending to join/create a MLS group try to acquire lock
-from the counter service on the join endpoint {{counter-join}}. The request
-identifies the MLS Group Name as the Counter ID to obtain the lock.
-
-The response can be one of the following:
-
-* Ok: A response of OK on the "Join" MOQT Track implies that there
-doesn't exist an MLS Group. In this scenario, the participant is the
-first participant and thus creates the group unilaterally and generates the
-initial secret for the group. Following which the participant releases the
-acquired lock by performing the increment operation for the obtained lock,
-on the counter service.
-
-* Locked: A response of "Locked"  implies a conflicting request
-and the requestor has to retry acquiring the lock, after the lock
-expiry timeout provided in the response.
-
-* CounterError: A response of CounterError implies that the service has
-a different value of the current counter than the one requested (counter 0).
-This happens when the requested MLS Group has already been created. In such
-situations, the participant awaits for an existing member to add the
-joining participant and publish the MLS Welcome message
-(see {{commits_welcome}}).
-
-
-## Updating Group State {#commits_welcome}
-
-Updating MLS group state requires {{invariants}} to be satisfied.
-This means that the changes have to be done linearly and changes to
-the group state MUST be performed by a single member within a MLS group
-for a given epoch.
-
-Group state in MLS can be udpated by adding a new member, removing
-an existing member or updating the group's entropy.
-
-### Adding a member to the MLS Group
-
-Members obtain a list of participants interested in joining a MLS group
-either as part of updates to their subscriptions to the "Join" Track and/or
-by issuing FETCH request to retrieve the missed MLS Join messages
-based on the Latest Group ID in the Subscribe_OK message. This supports
-processing join requests even when the members were offline for a period
-of time.
-
-
-The following process followed when adding a new member to a given MLS Group:
-
-1. Acquire lock for the current epoch from the counter service ({{counter-commit}}).
-
-2. If the lock was successfully acquired retrieve the MLS KeyPackage(s)
-from the cache by issuing FETCH request to the "KeyPackage" track against the
-the Sender ID in the Join message. The Sender ID maps to the start_group in the
-FETCH request and end_group is set to start_group + 1. If successfully retrieved,
-process the KeyPackage and generate set of MLS Welcome messages per joiner and
-a single MLS Commit message for the group. Publish individual MLS Welcome messages
-to the intended recipeints on per recipient welcome track (see {{process-welcome}})
-and Publish MLS Commit message to all the participants (see {{process-commit}}).
-
-### Removing a member from the MLS Group
-
-If the lock was successfully acquired and the operation is to remove a
-member, update the MLS state to remove the member, generate MLS Commit message
-and publish the generated MLS Commit message to all the participants
-(see {{process-commit}}).
-
-In either of the flows, If the response was "Locked", follow the
-procedures for retrying. A lock response of
-"CounterError" implies the member attempting to
-update the MLS group state is behind and MUST await until it catches
-up with all the MLS Commit messages in transit. It is important to note,
-this situation MAY also imply that another member won the contention
-to update the group state before this member can make the change.
-
-
-### Processing MLS Welcome Message {#process-welcome}
-
-In order to be able to publish MLS Welcome message and process the
-same over MOQT, following track naming scheme is specified.
-
-The TrackNamespace, termed "Welcome Namespace" is divided into
-2 parts as shown below:
-
-~~~~
-Welcome TrackNamespace := ("moq.mls.arpa/v1"),(<mls-group-name>),(<welcome>)
-~~~~
-
-MLS Welcome message is published over a track that is specific to individual
-recipient. Joining participants subscribe to the "Welcome Track" as part
-of MLS session bootstrapping, which has the following structure:
-
-~~~~
-Welcome Tracknamespace :=  Welcome TrackNamespace
-Welcome Trackname      :=  (<Paricipant ID>)
-~~~~
-
-The Paricipant ID is same as the Sender ID obtained from the
-Join message when processing the MLS KeyPackag. On receipt of the
-Welcome message, local MLS state is updated with the received
-MLS Welcome message to obtain the group secret for the current
-epoch.
-
-When publishing on the "Welcome Track", there is one MOQT group per MLS epoch
-and objectId 0 carries the MLS Welcome message.
-
-### Processing MLS Commit Messages {#process-commit}
-
-All the members subscribe to receive MLS Commit message and they do so
-by subscribing to the "Commit Track" as shown:
-
-~~~~
-Commit Tracknamespace :=  ("moq.mls.arpa/v1"),(<mls-group-name>)
-Trackname      :=  commit
-~~~~
-
-MLS Commit message updates the existing member about group changes, such
-as adds/removes and entropy updates. Publish to the "Commit Track"  happens
-with one MOQT group per MLS epoch and objectId 0 carries the MLS Commit message.
-
-
-# Counter Service {#ctr-svc}
-
-A counter service tracks a collection of counters with unique identifiers.
-In an MLS context, the counter value is equal to the MLS epoch when performing
-MLS group commit operations (see {{commits_welcome}}) and an incrementing
-counter value for processing MLS Group Join operations (see {{join-group}}), and the
-counter identifier is the MLS group identifier/MLS group name.
-
-Before a counter can be incremented, it must be locked.  As part of the lock
-operation, the caller states what their expected next counter value, which
-much match the service's expectation in order for the caller to acquire the
-lock.  Since the actual updates to the counter are out of band, this ensures
-that the caller has the correct current value before incrementing.
-
-There is no explicit initialization of counters.  The first call to `lock`
-for a counter must have `expected_next_value` set to 0.
-
-There is no method provided to clean up counters.  A service may clean up a
-counter if it has some out-of-band mechanism to find out that the counter is
-no longer needed.  For example, in an MLS context, once the MLS group is no
-longer in use, its counter can be discarded.
-
-## Lock API {#counter-lock}
-
-This is a simple REST style API over HTTPS used to request lock for
-a counter for a provided Counter ID.
-
-### Join API {#counter-join}
-Join lock API is used to acquire lock for a counter for a given Counter ID
-when a participant is trying to join a MLS group. The Counter ID
-MUST correspond to MLS Group Name.
-
-~~~~
-GET /lock/join/<Counter ID>?val=<counter>
-~~~~
-
-### Commit API {#counter-commit}
-Commit lock API is used to acquire lock for a counter for a given Counter ID
-when a participant is trying to update the MLS group state. The Counter ID
-MUST correspond to MLS Group Name.
-
-~~~~
-GET /lock/commit/<Counter ID>?val=<counter>
-~~~~
-
-Above APIs can be responded with the following responses:
-
-* "Ok" response impliesthat lock acquisition was successfull,
-"Confict" response implies that lock is already held with a retry_later time for
-retrying the lock acquisition.
-* "CounterError" response with the current value of the counter is returned when
-the requested counter doesn't match the `expected_next_value`.
-
-## Increment API {#counter-incr}
-
-The increment HTTPS API allows the counter value stored in `expected_next_value`
-to be incremented for the provided Counter ID.
-
-### Join API {#increment-join}
-The increment Join API is used to increment the counter value for a given Counter ID
-when a participant has successfully acquired the lock on performing
-the join operation. The Counter ID MUST correspond to MLS Group Name.
-
-~~~~
-POST /increment/join/<Counter ID>
-~~~~
-
-### Commit API {#increment-commit}
-The increment commit API is used to increment the counter value for a given Counter ID
-when a participant has successfully acquired the lock on performing
-the commit operation. The Counter ID MUST correspond to MLS Group Name.
-
-~~~~
-POST /increment/commit/<Counter ID>
-~~~~
-
-Returns "Ok" if the counter value was successfully incremented, a "Error"
-responses if the provider "Counter ID" hasn't been locked yet.
-
-TODO: Define Error responses and codes for authorization failures.
-
-# Interactions with MOQ Secure Objects
-
-MLS Key agreement generates a group shared secret, called "MLS Mater Key",
-per MLS Epoch. Epochs in MLS are incremented whenever there is changed
-in the group state due to an existing member commit the changes to the group.
-
-MLS generated shared group secret per epoch can be used to derive
-`track_base_key` when using SecureObjects (see Section 5 ) for
-protecting the objects within a MOQT track.
-
-The procedure for the same is as defined below:
-
-For each combination of (MLS Epoch, MLS Master Key) an 'Epoch Secret'
-is derived:
-
-~~~~
-Epoch Secret = HKDF.Extract("SecureObject Epoch Master Key " | MLS Epoch, MLS Master Key)
-~~~~
-
-'Epoch Secret' is used to derive `track_base_key` per `FullTrackName`
-(see Section 3 of {{SecureObjects}}):
-
-~~~~
-track_base_key = HKDF.Expand("SecureObject Track Base Key " | FullTrackName, Epoch Secret)
-~~~~
-
-When encrypting/decrypting objects using SecureObject, the epoch under which the
-`track_base_key` was computed is used as `KID` in the SecureObject Header. The
-`track_base_key` computed is used to derive per object keys and nonce as defined in
-Section 5 of {{SecureObjects}}. All the objects within a given epoch are
-encrypted/decrypted with the keys derived from the `Epoch Secret` for that epoch.
+A member leaving works similarly.  The member sends a LeaveRequest to the CS,
+who forwards it on the RequestTrack.  Another member generates a Commit that
+removes the leaving member; no Welcome is needed in this case.
+
+~~~
+# B Leaves
+B->Relay: UNSUBSCRIBE(CommitTrack)
+B -> CS: LeaveRequest
+CS -> RequestTrack: LeaveRequest
+RequestTrack -> A: LeaveRequest
+A -> CS: Commit
+CS -> CommitTrack: Commit
+
+WelcomeTrack -> C: Commit
+B: <Processes Commit, epoch=3>
+
+CommitTrack -> A: Commit
+A: <Processes Commit, epoch=3>
+~~~
+
+# Group Management
+
+A security group is managed using three tracks and a Coordination Service (CS).
+
+All members of the group subscribe to the CommitTrack.  Each object sent on this
+track contains an MLS PrivateMessage object, with content type `commit`.  The
+MOQT group ID for this object MUST be the epoch number in which the Commit is
+sent.  The MOQT object ID for this object MUST be zero.  When a client receives
+an object on the CommitTrack, it applies the enclosed Commit to its local MLS
+state in order to advance to the next epoch.
+
+Members of the group that might make Commits subscribe to the RequestTrack.
+Each object sent on this track contains a Request object in the format described
+in {{requests}}.  The MOQT group ID and object ID for objects sent within this
+track are set by the CS.
+
+Clients seeking to join the group subscribe to the WelcomeTrack.  Each object
+sent in this track contains an MLS Welcome object.  A client uses information in
+the Welcome to detect with one is intended for them, and ignores others.  The
+MOQT group ID and object ID for objects sent within this track are set by the
+CS.
+
+The CS must present two interfaces:
+
+* A **request interface** that clients can use to ask to join and leave the
+  group.  If a request is accepted, it is forwarded on the RequestTrack.
+* A **commit interface** that allows a group member to submit an MLS Commit
+  that changes the state of the group, together with an optional MLS Welcome
+  message that adds any new members.  If a Commit+Welcome is accepted, the
+  Commit is forwarded on the CommitTrack and the Welcome (if present) is
+  forwarded on the WelcomeTrack.
+
+## Join and Leave Requests {#requests}
+
+A client requests to join a group by submitting an MLS KeyPackage object.
+This object provides the information that a group member needs to add the new
+client to the group.
+
+A client requests to leave a group by submitting an MLS SelfRemove proposal that
+proposes the client's own removal {{?I-D.ietf-mls-extensions}}.  This proposal
+MUST be sent within an MLS PrivateMessage structure to allow other clients to
+verify its authenticity.
+
+~~~
+struct {
+    RequestType request_type;
+    switch (request_type) {
+        case join:
+            KeyPackage key_package;
+        case leave:
+            PrivateMessage remove;
+    }
+} Request;
+~~~
+
+## HTTPS-based Coordination Service {#http-cs}
+
+This section describes a simple HTTPS-based CS.  The CS has two HTTP endpoints,
+a request endpoint and a commit endpoint.  The only state that the CS keeps is
+the current epoch, which is initally set to an unknown value.
+
+The request endpoint accepts POST requests from clients.  The body of the POST
+request MUST be a Request object in the format defined in {{requests}}.
+The response to a request indicates the disposition of the request using an HTTP
+status code:
+
+200 (OK):
+: The group exists, and the request has been accepted and forwarded on the
+RequestTrack for the group.
+
+201 (Created):
+: The group did not exist prior to this request.  The CS has updated its
+internal epoch counter to 0, and the requestor should locally create a
+one-member group.
+
+The CS MUST ensure that only one client receives a 201 response per group.  If
+the CS receives initial requests from two clients simultaneously, it MUST return
+201 to one of them and 200 to the other, and perform the corresponding actions.
+
+The commit endpoint accepts POST requests from clients.  The body of the POST
+request MUST be a CommitRequest object of the following form:
+
+~~~
+struct {
+    PrivateMessage commit;
+    optional<Welcome> welcome;
+} CommitRequest;
+~~~
+
+The response to a request indicates the disposition of the request using an HTTP
+status code:
+
+200 (OK):
+: The group exists and the CS's internal epoch counter matches the `epoch` value
+in the PrivateMessage `commit`.  The `commit` data has been forwarded on the
+CommitTrack and the `welcome` data, if present, has been forwarded on the
+WelcomeTrack.  The CS has incremented its internal epoch counter by one.
+
+409 (Conflict):
+: The group exists and the CS's internal epoch counter does not match the
+`epoch` value in the PrivateMessage `commit`.  No further action has been taken.
+
+## Optimizations for Large Groups
+
+MOQT sessions are envisioned to include large numbers of clients.  In such
+settings, MLS Commit and Welcome messages can become large, slowing down MLS
+operations and potentially causing gaps in media.  Commit messages can be
+optimized from linear size to constant size at the expense of putting more
+processing in the CS {{?I-D.mularczyk-mls-splitcommit}}.  Welcome messages can
+be similarly optimized, but only by reducing the authentication guarantees that
+clients receive {{?I-D.kiefer-mls-partial}}.
+
+# Media Protection
+
+In a track with an assiciated security group, each object contains an SFrame
+ciphertext, as specified in {{SFrame}}.  A media sender applies SFrame
+encryption immediately before sending the object; the plaintext encapsulated in
+the ciphertext is the data that would have been sent in the object if a security
+group were not associated.
+
+SFrame parameters are set using the MLS-based key management framewrok described
+in {{Section 5.2 of !RFC9605}}.  This scheme automatically sets the SFrame KID
+and CTR values based on the sender's MLS state, and automatically derives
+per-sender keys and nonces.
+
+The `metadata` input to SFrame computations comprises the unique MOQT identifier
+for the object, namely the track namespace, track name, group ID, and object ID.
+
+> TODO: Define a serialization for the metadata.
+
+## Key Roll-Over
+
+> TODO: In practice, it has been useful to have coordinated key roll-over, where
+> clients report that they have received a new key and wait for a quorum before
+> starting to encrypt with it.
 
 # Security Considerations
 
-TODO Security
+> TODO: Document security properties, in particular the significance of forward
+> secrecy and post-compromise security in this setting.  Note that these
+> properties do not take effect until the media keys have rolled over.
 
-
-# IANA Considerations
-
-This document has no IANA actions.
-
+> TODO: Define some sort of identity story.  How might clients authenticate one
+> another?  Does this interact with the MOQ authorization story?
 
 --- back
 
-# Acknowledgments
-{:numbered="false"}
-
-TODO acknowledge.
